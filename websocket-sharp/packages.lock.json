@@ -1,9 +1,6 @@
 {
   "version": 1,
   "dependencies": {
-    ".NETFramework,Version=v4.0": {},
-    ".NETFramework,Version=v4.0/win": {},
-    ".NETFramework,Version=v4.0/win-x64": {},
-    ".NETFramework,Version=v4.0/win-x86": {}
+    "net6.0": {}
   }
 }
