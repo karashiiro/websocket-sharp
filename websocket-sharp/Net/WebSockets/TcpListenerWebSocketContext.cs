@@ -52,17 +52,14 @@ namespace WebSocketSharp.Net.WebSockets
   {
     #region Private Fields
 
-    private Logger              _log;
     private NameValueCollection _queryString;
     private HttpRequest         _request;
     private Uri                 _requestUri;
     private bool                _secure;
     private System.Net.EndPoint _serverEndPoint;
-    private Stream              _stream;
     private TcpClient           _tcpClient;
     private IPrincipal          _user;
     private System.Net.EndPoint _userEndPoint;
-    private WebSocket           _websocket;
 
     #endregion
 
@@ -78,7 +75,7 @@ namespace WebSocketSharp.Net.WebSockets
     {
       _tcpClient = tcpClient;
       _secure = secure;
-      _log = log;
+      Log = log;
 
       var netStream = tcpClient.GetStream ();
 
@@ -96,35 +93,27 @@ namespace WebSocketSharp.Net.WebSockets
           sslConfig.CheckCertificateRevocation
         );
 
-        _stream = sslStream;
+        Stream = sslStream;
       }
       else {
-        _stream = netStream;
+        Stream = netStream;
       }
 
       var sock = tcpClient.Client;
       _serverEndPoint = sock.LocalEndPoint;
       _userEndPoint = sock.RemoteEndPoint;
 
-      _request = HttpRequest.ReadRequest (_stream, 90000);
-      _websocket = new WebSocket (this, protocol);
+      _request = HttpRequest.ReadRequest (Stream, 90000);
+      WebSocket = new WebSocket (this, protocol);
     }
 
     #endregion
 
     #region Internal Properties
 
-    internal Logger Log {
-      get {
-        return _log;
-      }
-    }
+    internal Logger Log { get; }
 
-    internal Stream Stream {
-      get {
-        return _stream;
-      }
-    }
+    internal Stream Stream { get; }
 
     #endregion
 
@@ -424,11 +413,7 @@ namespace WebSocketSharp.Net.WebSockets
     /// <value>
     /// A <see cref="WebSocketSharp.WebSocket"/>.
     /// </value>
-    public override WebSocket WebSocket {
-      get {
-        return _websocket;
-      }
-    }
+    public override WebSocket WebSocket { get; }
 
     #endregion
 
@@ -436,23 +421,23 @@ namespace WebSocketSharp.Net.WebSockets
 
     internal void Close ()
     {
-      _stream.Close ();
+      Stream.Close ();
       _tcpClient.Close ();
     }
 
     internal void Close (HttpStatusCode code)
     {
-      HttpResponse.CreateCloseResponse (code).WriteTo (_stream);
+      HttpResponse.CreateCloseResponse (code).WriteTo (Stream);
 
-      _stream.Close ();
+      Stream.Close ();
       _tcpClient.Close ();
     }
 
     internal void SendAuthenticationChallenge (string challenge)
     {
-      HttpResponse.CreateUnauthorizedResponse (challenge).WriteTo (_stream);
+      HttpResponse.CreateUnauthorizedResponse (challenge).WriteTo (Stream);
 
-      _request = HttpRequest.ReadRequest (_stream, 15000);
+      _request = HttpRequest.ReadRequest (Stream, 15000);
     }
 
     internal bool SetUser (

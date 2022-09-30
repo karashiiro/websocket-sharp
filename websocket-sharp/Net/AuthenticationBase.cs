@@ -36,8 +36,6 @@ namespace WebSocketSharp.Net
   {
     #region Private Fields
 
-    private AuthenticationSchemes _scheme;
-
     #endregion
 
     #region Internal Fields
@@ -50,7 +48,7 @@ namespace WebSocketSharp.Net
 
     protected AuthenticationBase (AuthenticationSchemes scheme, NameValueCollection parameters)
     {
-      _scheme = scheme;
+      Scheme = scheme;
       Parameters = parameters;
     }
 
@@ -88,11 +86,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    public AuthenticationSchemes Scheme {
-      get {
-        return _scheme;
-      }
-    }
+    public AuthenticationSchemes Scheme { get; }
 
     #endregion
 
@@ -139,9 +133,9 @@ namespace WebSocketSharp.Net
 
     public override string ToString ()
     {
-      return _scheme == AuthenticationSchemes.Basic
+      return Scheme == AuthenticationSchemes.Basic
              ? ToBasicString ()
-             : _scheme == AuthenticationSchemes.Digest
+             : Scheme == AuthenticationSchemes.Digest
                ? ToDigestString ()
                : String.Empty;
     }

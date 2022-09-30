@@ -50,7 +50,6 @@ namespace WebSocketSharp
 
     private string _data;
     private bool   _dataSet;
-    private Opcode _opcode;
     private byte[] _rawData;
 
     #endregion
@@ -59,7 +58,7 @@ namespace WebSocketSharp
 
     internal MessageEventArgs (WebSocketFrame frame)
     {
-      _opcode = frame.Opcode;
+      Opcode = frame.Opcode;
       _rawData = frame.PayloadData.ApplicationData;
     }
 
@@ -68,7 +67,7 @@ namespace WebSocketSharp
       if ((ulong) rawData.LongLength > PayloadData.MaxLength)
         throw new WebSocketException (CloseStatusCode.TooBig);
 
-      _opcode = opcode;
+      Opcode = opcode;
       _rawData = rawData;
     }
 
@@ -83,11 +82,7 @@ namespace WebSocketSharp
     /// <see cref="Opcode.Text"/>, <see cref="Opcode.Binary"/>,
     /// or <see cref="Opcode.Ping"/>.
     /// </value>
-    internal Opcode Opcode {
-      get {
-        return _opcode;
-      }
-    }
+    internal Opcode Opcode { get; }
 
     #endregion
 
@@ -116,7 +111,7 @@ namespace WebSocketSharp
     /// </value>
     public bool IsBinary {
       get {
-        return _opcode == Opcode.Binary;
+        return Opcode == Opcode.Binary;
       }
     }
 
@@ -128,7 +123,7 @@ namespace WebSocketSharp
     /// </value>
     public bool IsPing {
       get {
-        return _opcode == Opcode.Ping;
+        return Opcode == Opcode.Ping;
       }
     }
 
@@ -140,7 +135,7 @@ namespace WebSocketSharp
     /// </value>
     public bool IsText {
       get {
-        return _opcode == Opcode.Text;
+        return Opcode == Opcode.Text;
       }
     }
 
@@ -166,7 +161,7 @@ namespace WebSocketSharp
       if (_dataSet)
         return;
 
-      if (_opcode == Opcode.Binary) {
+      if (Opcode == Opcode.Binary) {
         _dataSet = true;
         return;
       }

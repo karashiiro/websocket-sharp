@@ -98,7 +98,6 @@ namespace WebSocketSharp.Net
     private static readonly char[] _reservedCharsForValue;
     private string                 _sameSite;
     private bool                   _secure;
-    private DateTime               _timeStamp;
     private string                 _value;
     private int                    _version;
 
@@ -340,7 +339,7 @@ namespace WebSocketSharp.Net
 
       set {
         _expires = value > 0
-                   ? DateTime.Now.AddSeconds ((double) value)
+                   ? DateTime.Now.AddSeconds (value)
                    : DateTime.Now;
       }
     }
@@ -669,11 +668,7 @@ namespace WebSocketSharp.Net
     /// A <see cref="DateTime"/> that represents the time when
     /// the cookie was issued.
     /// </value>
-    public DateTime TimeStamp {
-      get {
-        return _timeStamp;
-      }
-    }
+    public DateTime TimeStamp { get; private set; }
 
     /// <summary>
     /// Gets or sets the value of the cookie.
@@ -754,7 +749,7 @@ namespace WebSocketSharp.Net
       _domain = domain;
 
       _expires = DateTime.MinValue;
-      _timeStamp = DateTime.Now;
+      TimeStamp = DateTime.Now;
     }
 
     private string toResponseStringVersion0 ()

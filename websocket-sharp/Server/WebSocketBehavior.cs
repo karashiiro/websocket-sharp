@@ -46,15 +46,8 @@ namespace WebSocketSharp.Server
   {
     #region Private Fields
 
-    private WebSocketContext                               _context;
-    private Func<CookieCollection, CookieCollection, bool> _cookiesValidator;
     private bool                                           _emitOnPing;
-    private string                                         _id;
-    private bool                                           _ignoreExtensions;
-    private Func<string, bool>                             _originValidator;
     private string                                         _protocol;
-    private WebSocketSessionManager                        _sessions;
-    private DateTime                                       _startTime;
     private WebSocket                                      _websocket;
 
     #endregion
@@ -66,7 +59,7 @@ namespace WebSocketSharp.Server
     /// </summary>
     protected WebSocketBehavior ()
     {
-      _startTime = DateTime.MaxValue;
+      StartTime = DateTime.MaxValue;
     }
 
     #endregion
@@ -86,7 +79,7 @@ namespace WebSocketSharp.Server
     /// </value>
     protected NameValueCollection Headers {
       get {
-        return _context != null ? _context.Headers : null;
+        return Context != null ? Context.Headers : null;
       }
     }
 
@@ -107,7 +100,7 @@ namespace WebSocketSharp.Server
     /// </value>
     protected NameValueCollection QueryString {
       get {
-        return _context != null ? _context.QueryString : null;
+        return Context != null ? Context.QueryString : null;
       }
     }
 
@@ -123,11 +116,7 @@ namespace WebSocketSharp.Server
     ///   <see langword="null"/> if the session has not started yet.
     ///   </para>
     /// </value>
-    protected WebSocketSessionManager Sessions {
-      get {
-        return _sessions;
-      }
-    }
+    protected WebSocketSessionManager Sessions { get; private set; }
 
     #endregion
 
@@ -168,11 +157,7 @@ namespace WebSocketSharp.Server
     ///   <see langword="null"/> if the session has not started yet.
     ///   </para>
     /// </value>
-    public WebSocketContext Context {
-      get {
-        return _context;
-      }
-    }
+    public WebSocketContext Context { get; private set; }
 
     /// <summary>
     /// Gets or sets the delegate used to validate the HTTP cookies included in
@@ -202,15 +187,7 @@ namespace WebSocketSharp.Server
     ///   The default value is <see langword="null"/>.
     ///   </para>
     /// </value>
-    public Func<CookieCollection, CookieCollection, bool> CookiesValidator {
-      get {
-        return _cookiesValidator;
-      }
-
-      set {
-        _cookiesValidator = value;
-      }
-    }
+    public Func<CookieCollection, CookieCollection, bool> CookiesValidator { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the WebSocket instance for
@@ -252,11 +229,7 @@ namespace WebSocketSharp.Server
     ///   <see langword="null"/> if the session has not started yet.
     ///   </para>
     /// </value>
-    public string ID {
-      get {
-        return _id;
-      }
-    }
+    public string ID { get; private set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the service ignores
@@ -272,15 +245,7 @@ namespace WebSocketSharp.Server
     ///   The default value is <c>false</c>.
     ///   </para>
     /// </value>
-    public bool IgnoreExtensions {
-      get {
-        return _ignoreExtensions;
-      }
-
-      set {
-        _ignoreExtensions = value;
-      }
-    }
+    public bool IgnoreExtensions { get; set; }
 
     /// <summary>
     /// Gets or sets the delegate used to validate the Origin header included in
@@ -307,15 +272,7 @@ namespace WebSocketSharp.Server
     ///   The default value is <see langword="null"/>.
     ///   </para>
     /// </value>
-    public Func<string, bool> OriginValidator {
-      get {
-        return _originValidator;
-      }
-
-      set {
-        _originValidator = value;
-      }
-    }
+    public Func<string, bool> OriginValidator { get; set; }
 
     /// <summary>
     /// Gets or sets the name of the WebSocket subprotocol for the service.
@@ -381,11 +338,7 @@ namespace WebSocketSharp.Server
     ///   <see cref="DateTime.MaxValue"/> if the session has not started yet.
     ///   </para>
     /// </value>
-    public DateTime StartTime {
-      get {
-        return _startTime;
-      }
-    }
+    public DateTime StartTime { get; private set; }
 
     #endregion
 
@@ -393,16 +346,16 @@ namespace WebSocketSharp.Server
 
     private string checkHandshakeRequest (WebSocketContext context)
     {
-      if (_originValidator != null) {
-        if (!_originValidator (context.Origin))
+      if (OriginValidator != null) {
+        if (!OriginValidator (context.Origin))
           return "It includes no Origin header or an invalid one.";
       }
 
-      if (_cookiesValidator != null) {
+      if (CookiesValidator != null) {
         var req = context.CookieCollection;
         var res = context.WebSocket.CookieCollection;
 
-        if (!_cookiesValidator (req, res))
+        if (!CookiesValidator (req, res))
           return "It includes no cookie or an invalid one.";
       }
 
@@ -411,10 +364,10 @@ namespace WebSocketSharp.Server
 
     private void onClose (object sender, CloseEventArgs e)
     {
-      if (_id == null)
+      if (ID == null)
         return;
 
-      _sessions.Remove (_id);
+      Sessions.Remove (ID);
 
       OnClose (e);
     }
@@ -431,15 +384,15 @@ namespace WebSocketSharp.Server
 
     private void onOpen (object sender, EventArgs e)
     {
-      _id = _sessions.Add (this);
+      ID = Sessions.Add (this);
 
-      if (_id == null) {
+      if (ID == null) {
         _websocket.Close (CloseStatusCode.Away);
 
         return;
       }
 
-      _startTime = DateTime.Now;
+      StartTime = DateTime.Now;
 
       OnOpen ();
     }
@@ -452,13 +405,13 @@ namespace WebSocketSharp.Server
       WebSocketContext context, WebSocketSessionManager sessions
     )
     {
-      _context = context;
-      _sessions = sessions;
+      Context = context;
+      Sessions = sessions;
 
       _websocket = context.WebSocket;
       _websocket.CustomHandshakeRequestChecker = checkHandshakeRequest;
       _websocket.EmitOnPing = _emitOnPing;
-      _websocket.IgnoreExtensions = _ignoreExtensions;
+      _websocket.IgnoreExtensions = IgnoreExtensions;
       _websocket.Protocol = _protocol;
 
       var waitTime = sessions.WaitTime;

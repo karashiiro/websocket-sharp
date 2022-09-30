@@ -47,9 +47,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
-using System.Threading;
 
 // TODO: Logging.
 namespace WebSocketSharp.Net
@@ -82,11 +80,9 @@ namespace WebSocketSharp.Net
     private bool                                             _disposed;
     private bool                                             _ignoreWriteExceptions;
     private volatile bool                                    _listening;
-    private Logger                                           _log;
     private string                                           _objectName;
     private HttpListenerPrefixCollection                     _prefixes;
     private string                                           _realm;
-    private bool                                             _reuseAddress;
     private ServerSslConfiguration                           _sslConfig;
     private object                                           _sync;
     private Func<IIdentity, NetworkCredential>               _userCredFinder;
@@ -116,7 +112,7 @@ namespace WebSocketSharp.Net
       _contextRegistry = new LinkedList<HttpListenerContext> ();
       _contextRegistrySync = ((ICollection) _contextRegistry).SyncRoot;
 
-      _log = new Logger ();
+      Log = new Logger ();
       _objectName = GetType ().ToString ();
       _prefixes = new HttpListenerPrefixCollection (this);
       _sync = new object ();
@@ -127,15 +123,7 @@ namespace WebSocketSharp.Net
 
     #region Internal Properties
 
-    internal bool ReuseAddress {
-      get {
-        return _reuseAddress;
-      }
-
-      set {
-        _reuseAddress = value;
-      }
-    }
+    internal bool ReuseAddress { get; set; }
 
     #endregion
 
@@ -345,11 +333,7 @@ namespace WebSocketSharp.Net
     /// <value>
     /// A <see cref="Logger"/> that provides the logging functions.
     /// </value>
-    public Logger Log {
-      get {
-        return _log;
-      }
-    }
+    public Logger Log { get; }
 
     /// <summary>
     /// Gets the URI prefixes handled by the listener.

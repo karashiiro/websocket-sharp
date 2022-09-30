@@ -67,9 +67,7 @@ namespace WebSocketSharp.Net
     private static readonly string                     _defaultCertFolderPath;
     private IPEndPoint                                 _endpoint;
     private List<HttpListenerPrefix>                   _prefixes;
-    private bool                                       _secure;
     private Socket                                     _socket;
-    private ServerSslConfiguration                     _sslConfig;
     private List<HttpListenerPrefix>                   _unhandled; // host == '*'
 
     #endregion
@@ -110,9 +108,9 @@ namespace WebSocketSharp.Net
           throw new ArgumentException (msg);
         }
 
-        _secure = true;
-        _sslConfig = new ServerSslConfiguration (sslConfig);
-        _sslConfig.ServerCertificate = cert;
+        IsSecure = true;
+        SslConfiguration = new ServerSslConfiguration (sslConfig);
+        SslConfiguration.ServerCertificate = cert;
       }
 
       _prefixes = new List<HttpListenerPrefix> ();
@@ -148,11 +146,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    public bool IsSecure {
-      get {
-        return _secure;
-      }
-    }
+    public bool IsSecure { get; }
 
     public int Port {
       get {
@@ -160,11 +154,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    public ServerSslConfiguration SslConfiguration {
-      get {
-        return _sslConfig;
-      }
-    }
+    public ServerSslConfiguration SslConfiguration { get; }
 
     #endregion
 

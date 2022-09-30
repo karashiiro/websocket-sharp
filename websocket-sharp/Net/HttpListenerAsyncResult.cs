@@ -55,12 +55,8 @@ namespace WebSocketSharp.Net
 
     private AsyncCallback       _callback;
     private bool                _completed;
-    private bool                _completedSynchronously;
     private HttpListenerContext _context;
-    private bool                _endCalled;
     private Exception           _exception;
-    private object              _state;
-    private object              _sync;
     private ManualResetEvent    _waitHandle;
 
     #endregion
@@ -70,9 +66,9 @@ namespace WebSocketSharp.Net
     internal HttpListenerAsyncResult (AsyncCallback callback, object state)
     {
       _callback = callback;
-      _state = state;
+      AsyncState = state;
 
-      _sync = new object ();
+      SyncRoot = new object ();
     }
 
     #endregion
@@ -89,35 +85,19 @@ namespace WebSocketSharp.Net
       }
     }
 
-    internal bool EndCalled {
-      get {
-        return _endCalled;
-      }
+    internal bool EndCalled { get; set; }
 
-      set {
-        _endCalled = value;
-      }
-    }
-
-    internal object SyncRoot {
-      get {
-        return _sync;
-      }
-    }
+    internal object SyncRoot { get; }
 
     #endregion
 
     #region Public Properties
 
-    public object AsyncState {
-      get {
-        return _state;
-      }
-    }
+    public object AsyncState { get; }
 
     public WaitHandle AsyncWaitHandle {
       get {
-        lock (_sync) {
+        lock (SyncRoot) {
           if (_waitHandle == null)
             _waitHandle = new ManualResetEvent (_completed);
 
@@ -126,15 +106,11 @@ namespace WebSocketSharp.Net
       }
     }
 
-    public bool CompletedSynchronously {
-      get {
-        return _completedSynchronously;
-      }
-    }
+    public bool CompletedSynchronously { get; private set; }
 
     public bool IsCompleted {
       get {
-        lock (_sync)
+        lock (SyncRoot)
           return _completed;
       }
     }
@@ -145,7 +121,7 @@ namespace WebSocketSharp.Net
 
     private void complete ()
     {
-      lock (_sync) {
+      lock (SyncRoot) {
         _completed = true;
 
         if (_waitHandle != null)
@@ -183,7 +159,7 @@ namespace WebSocketSharp.Net
     )
     {
       _context = context;
-      _completedSynchronously = completedSynchronously;
+      CompletedSynchronously = completedSynchronously;
 
       complete ();
     }

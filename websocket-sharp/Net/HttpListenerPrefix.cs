@@ -46,13 +46,7 @@ namespace WebSocketSharp.Net
   {
     #region Private Fields
 
-    private string       _host;
-    private HttpListener _listener;
-    private string       _original;
-    private string       _path;
-    private string       _port;
     private string       _prefix;
-    private bool         _secure;
 
     #endregion
 
@@ -73,8 +67,8 @@ namespace WebSocketSharp.Net
     /// </param>
     internal HttpListenerPrefix (string uriPrefix, HttpListener listener)
     {
-      _original = uriPrefix;
-      _listener = listener;
+      Original = uriPrefix;
+      Listener = listener;
 
       parse (uriPrefix);
     }
@@ -83,41 +77,17 @@ namespace WebSocketSharp.Net
 
     #region Public Properties
 
-    public string Host {
-      get {
-        return _host;
-      }
-    }
+    public string Host { get; private set; }
 
-    public bool IsSecure {
-      get {
-        return _secure;
-      }
-    }
+    public bool IsSecure { get; private set; }
 
-    public HttpListener Listener {
-      get {
-        return _listener;
-      }
-    }
+    public HttpListener Listener { get; }
 
-    public string Original {
-      get {
-        return _original;
-      }
-    }
+    public string Original { get; }
 
-    public string Path {
-      get {
-        return _path;
-      }
-    }
+    public string Path { get; private set; }
 
-    public string Port {
-      get {
-        return _port;
-      }
-    }
+    public string Port { get; private set; }
 
     #endregion
 
@@ -126,7 +96,7 @@ namespace WebSocketSharp.Net
     private void parse (string uriPrefix)
     {
       if (uriPrefix.StartsWith ("https"))
-        _secure = true;
+        IsSecure = true;
 
       var len = uriPrefix.Length;
       var host = uriPrefix.IndexOf (':') + 3;
@@ -135,22 +105,22 @@ namespace WebSocketSharp.Net
       var colon = uriPrefix.LastIndexOf (':', root - 1, root - host - 1);
 
       if (uriPrefix[root - 1] != ']' && colon > host) {
-        _host = uriPrefix.Substring (host, colon - host);
-        _port = uriPrefix.Substring (colon + 1, root - colon - 1);
+        Host = uriPrefix.Substring (host, colon - host);
+        Port = uriPrefix.Substring (colon + 1, root - colon - 1);
       }
       else {
-        _host = uriPrefix.Substring (host, root - host);
-        _port = _secure ? "443" : "80";
+        Host = uriPrefix.Substring (host, root - host);
+        Port = IsSecure ? "443" : "80";
       }
 
-      _path = uriPrefix.Substring (root);
+      Path = uriPrefix.Substring (root);
 
       _prefix = String.Format (
                   "{0}://{1}:{2}{3}",
-                  _secure ? "https" : "http",
-                  _host,
-                  _port,
-                  _path
+                  IsSecure ? "https" : "http",
+                  Host,
+                  Port,
+                  Path
                 );
     }
 

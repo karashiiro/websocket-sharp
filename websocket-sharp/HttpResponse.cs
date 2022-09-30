@@ -29,7 +29,6 @@
 using System;
 using System.Collections.Specialized;
 using System.IO;
-using System.Text;
 using WebSocketSharp.Net;
 
 namespace WebSocketSharp
@@ -37,9 +36,6 @@ namespace WebSocketSharp
   internal class HttpResponse : HttpBase
   {
     #region Private Fields
-
-    private int    _code;
-    private string _reason;
 
     #endregion
 
@@ -50,8 +46,8 @@ namespace WebSocketSharp
     )
       : base (version, headers)
     {
-      _code = code;
-      _reason = reason;
+      StatusCode = code;
+      Reason = reason;
     }
 
     #endregion
@@ -90,12 +86,12 @@ namespace WebSocketSharp
 
     internal string StatusLine {
       get {
-        return _reason != null
+        return Reason != null
                ? String.Format (
-                   "HTTP/{0} {1} {2}{3}", ProtocolVersion, _code, _reason, CrLf
+                   "HTTP/{0} {1} {2}{3}", ProtocolVersion, StatusCode, Reason, CrLf
                  )
                : String.Format (
-                   "HTTP/{0} {1}{2}", ProtocolVersion, _code, CrLf
+                   "HTTP/{0} {1}{2}", ProtocolVersion, StatusCode, CrLf
                  );
       }
     }
@@ -120,32 +116,32 @@ namespace WebSocketSharp
 
     public bool IsProxyAuthenticationRequired {
       get {
-        return _code == 407;
+        return StatusCode == 407;
       }
     }
 
     public bool IsRedirect {
       get {
-        return _code == 301 || _code == 302;
+        return StatusCode == 301 || StatusCode == 302;
       }
     }
 
     public bool IsSuccess {
       get {
-        return _code >= 200 && _code <= 299;
+        return StatusCode >= 200 && StatusCode <= 299;
       }
     }
 
     public bool IsUnauthorized {
       get {
-        return _code == 401;
+        return StatusCode == 401;
       }
     }
 
     public bool IsWebSocketResponse {
       get {
         return ProtocolVersion > HttpVersion.Version10
-               && _code == 101
+               && StatusCode == 101
                && Headers.Upgrades ("websocket");
       }
     }
@@ -156,17 +152,9 @@ namespace WebSocketSharp
       }
     }
 
-    public string Reason {
-      get {
-        return _reason;
-      }
-    }
+    public string Reason { get; }
 
-    public int StatusCode {
-      get {
-        return _code;
-      }
-    }
+    public int StatusCode { get; }
 
     #endregion
 
@@ -237,7 +225,7 @@ namespace WebSocketSharp
       Stream stream, int millisecondsTimeout
     )
     {
-      return Read<HttpResponse> (stream, Parse, millisecondsTimeout);
+      return Read (stream, Parse, millisecondsTimeout);
     }
 
     #endregion

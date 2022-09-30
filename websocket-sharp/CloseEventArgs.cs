@@ -46,7 +46,6 @@ namespace WebSocketSharp
   {
     #region Private Fields
 
-    private bool        _clean;
     private PayloadData _payloadData;
 
     #endregion
@@ -56,13 +55,13 @@ namespace WebSocketSharp
     internal CloseEventArgs (PayloadData payloadData, bool clean)
     {
       _payloadData = payloadData;
-      _clean = clean;
+      WasClean = clean;
     }
 
     internal CloseEventArgs (ushort code, string reason, bool clean)
     {
       _payloadData = new PayloadData (code, reason);
-      _clean = clean;
+      WasClean = clean;
     }
 
     #endregion
@@ -102,11 +101,7 @@ namespace WebSocketSharp
     /// <c>true</c> if the connection has been closed cleanly; otherwise,
     /// <c>false</c>.
     /// </value>
-    public bool WasClean {
-      get {
-        return _clean;
-      }
-    }
+    public bool WasClean { get; }
 
     #endregion
   }

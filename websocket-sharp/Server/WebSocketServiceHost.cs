@@ -50,10 +50,6 @@ namespace WebSocketSharp.Server
   {
     #region Private Fields
 
-    private Logger                  _log;
-    private string                  _path;
-    private WebSocketSessionManager _sessions;
-
     #endregion
 
     #region Protected Constructors
@@ -72,10 +68,10 @@ namespace WebSocketSharp.Server
     /// </param>
     protected WebSocketServiceHost (string path, Logger log)
     {
-      _path = path;
-      _log = log;
+      Path = path;
+      Log = log;
 
-      _sessions = new WebSocketSessionManager (log);
+      Sessions = new WebSocketSessionManager (log);
     }
 
     #endregion
@@ -84,7 +80,7 @@ namespace WebSocketSharp.Server
 
     internal ServerState State {
       get {
-        return _sessions.State;
+        return Sessions.State;
       }
     }
 
@@ -98,11 +94,7 @@ namespace WebSocketSharp.Server
     /// <value>
     /// A <see cref="Logger"/> that provides the logging function.
     /// </value>
-    protected Logger Log {
-      get {
-        return _log;
-      }
-    }
+    protected Logger Log { get; }
 
     #endregion
 
@@ -122,11 +114,11 @@ namespace WebSocketSharp.Server
     /// </value>
     public bool KeepClean {
       get {
-        return _sessions.KeepClean;
+        return Sessions.KeepClean;
       }
 
       set {
-        _sessions.KeepClean = value;
+        Sessions.KeepClean = value;
       }
     }
 
@@ -137,11 +129,7 @@ namespace WebSocketSharp.Server
     /// A <see cref="string"/> that represents the absolute path to
     /// the service.
     /// </value>
-    public string Path {
-      get {
-        return _path;
-      }
-    }
+    public string Path { get; }
 
     /// <summary>
     /// Gets the management function for the sessions in the service.
@@ -150,11 +138,7 @@ namespace WebSocketSharp.Server
     /// A <see cref="WebSocketSessionManager"/> that manages the sessions in
     /// the service.
     /// </value>
-    public WebSocketSessionManager Sessions {
-      get {
-        return _sessions;
-      }
-    }
+    public WebSocketSessionManager Sessions { get; }
 
     /// <summary>
     /// Gets the type of the behavior of the service.
@@ -181,11 +165,11 @@ namespace WebSocketSharp.Server
     /// </exception>
     public TimeSpan WaitTime {
       get {
-        return _sessions.WaitTime;
+        return Sessions.WaitTime;
       }
 
       set {
-        _sessions.WaitTime = value;
+        Sessions.WaitTime = value;
       }
     }
 
@@ -195,17 +179,17 @@ namespace WebSocketSharp.Server
 
     internal void Start ()
     {
-      _sessions.Start ();
+      Sessions.Start ();
     }
 
     internal void StartSession (WebSocketContext context)
     {
-      CreateSession ().Start (context, _sessions);
+      CreateSession ().Start (context, Sessions);
     }
 
     internal void Stop (ushort code, string reason)
     {
-      _sessions.Stop (code, reason);
+      Sessions.Stop (code, reason);
     }
 
     #endregion

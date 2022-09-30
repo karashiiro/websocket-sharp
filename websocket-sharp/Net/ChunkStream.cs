@@ -53,11 +53,7 @@ namespace WebSocketSharp.Net
     private int                 _chunkRead;
     private int                 _chunkSize;
     private List<Chunk>         _chunks;
-    private int                 _count;
-    private byte[]              _endBuffer;
     private bool                _gotIt;
-    private WebHeaderCollection _headers;
-    private int                 _offset;
     private StringBuilder       _saved;
     private bool                _sawCr;
     private InputChunkState     _state;
@@ -69,7 +65,7 @@ namespace WebSocketSharp.Net
 
     public ChunkStream (WebHeaderCollection headers)
     {
-      _headers = headers;
+      Headers = headers;
 
       _chunkSize = -1;
       _chunks = new List<Chunk> ();
@@ -80,33 +76,17 @@ namespace WebSocketSharp.Net
 
     #region Internal Properties
 
-    internal int Count {
-      get {
-        return _count;
-      }
-    }
+    internal int Count { get; private set; }
 
-    internal byte[] EndBuffer {
-      get {
-        return _endBuffer;
-      }
-    }
+    internal byte[] EndBuffer { get; private set; }
 
-    internal int Offset {
-      get {
-        return _offset;
-      }
-    }
+    internal int Offset { get; private set; }
 
     #endregion
 
     #region Public Properties
 
-    public WebHeaderCollection Headers {
-      get {
-        return _headers;
-      }
-    }
+    public WebHeaderCollection Headers { get; }
 
     public bool WantsMore {
       get {
@@ -280,7 +260,7 @@ namespace WebSocketSharp.Net
         if (line == null || line.Length == 0)
           break;
 
-        _headers.Add (line);
+        Headers.Add (line);
       }
 
       return InputChunkState.End;
@@ -344,9 +324,9 @@ namespace WebSocketSharp.Net
       }
 
       if (_state == InputChunkState.End) {
-        _endBuffer = buffer;
-        _offset = offset;
-        _count = length - offset;
+        EndBuffer = buffer;
+        Offset = offset;
+        Count = length - offset;
 
         return;
       }

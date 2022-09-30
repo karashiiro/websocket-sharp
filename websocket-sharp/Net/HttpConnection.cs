@@ -75,10 +75,7 @@ namespace WebSocketSharp.Net
     private int                   _position;
     private EndPoint              _remoteEndPoint;
     private MemoryStream          _requestBuffer;
-    private int                   _reuses;
-    private bool                  _secure;
     private Socket                _socket;
-    private Stream                _stream;
     private object                _sync;
     private int                   _timeout;
     private Dictionary<int, bool> _timeoutCanceled;
@@ -120,11 +117,11 @@ namespace WebSocketSharp.Net
           sslConf.CheckCertificateRevocation
         );
 
-        _secure = true;
-        _stream = sslStream;
+        IsSecure = true;
+        Stream = sslStream;
       }
       else {
-        _stream = netStream;
+        Stream = netStream;
       }
 
       _buffer = new byte[_bufferLength];
@@ -154,11 +151,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    public bool IsSecure {
-      get {
-        return _secure;
-      }
-    }
+    public bool IsSecure { get; }
 
     public IPEndPoint LocalEndPoint {
       get {
@@ -172,17 +165,9 @@ namespace WebSocketSharp.Net
       }
     }
 
-    public int Reuses {
-      get {
-        return _reuses;
-      }
-    }
+    public int Reuses { get; private set; }
 
-    public Stream Stream {
-      get {
-        return _stream;
-      }
-    }
+    public Stream Stream { get; private set; }
 
     #endregion
 
@@ -255,12 +240,12 @@ namespace WebSocketSharp.Net
 
     private void disposeStream ()
     {
-      if (_stream == null)
+      if (Stream == null)
         return;
 
-      _stream.Dispose ();
+      Stream.Dispose ();
 
-      _stream = null;
+      Stream = null;
     }
 
     private void disposeTimer ()
@@ -311,7 +296,7 @@ namespace WebSocketSharp.Net
         var nread = 0;
 
         try {
-          nread = conn._stream.EndRead (asyncResult);
+          nread = conn.Stream.EndRead (asyncResult);
         }
         catch (Exception) {
           // TODO: Logging.
@@ -518,7 +503,7 @@ namespace WebSocketSharp.Net
       _timer.Change (_timeout, Timeout.Infinite);
 
       try {
-        _stream.BeginRead (_buffer, 0, _bufferLength, onRead, this);
+        Stream.BeginRead (_buffer, 0, _bufferLength, onRead, this);
       }
       catch (Exception) {
         // TODO: Logging.
@@ -561,7 +546,7 @@ namespace WebSocketSharp.Net
 
         _context.Unregister ();
 
-        _reuses++;
+        Reuses++;
 
         var buff = takeOverRequestBuffer ();
         var len = buff.Length;
@@ -601,10 +586,10 @@ namespace WebSocketSharp.Net
 
         _inputStream = chunked
                        ? new ChunkedRequestStream (
-                           _stream, buff, _position, cnt, _context
+                           Stream, buff, _position, cnt, _context
                          )
                        : new RequestStream (
-                           _stream, buff, _position, cnt, contentLength
+                           Stream, buff, _position, cnt, contentLength
                          );
 
         disposeRequestBuffer ();
@@ -625,7 +610,7 @@ namespace WebSocketSharp.Net
         var lsnr = _context.Listener;
         var ignore = lsnr != null ? lsnr.IgnoreWriteExceptions : true;
 
-        _outputStream = new ResponseStream (_stream, _context.Response, ignore);
+        _outputStream = new ResponseStream (Stream, _context.Response, ignore);
 
         return _outputStream;
       }

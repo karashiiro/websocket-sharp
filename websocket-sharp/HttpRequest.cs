@@ -46,8 +46,6 @@ namespace WebSocketSharp
     #region Private Fields
 
     private CookieCollection _cookies;
-    private string           _method;
-    private string           _target;
 
     #endregion
 
@@ -61,8 +59,8 @@ namespace WebSocketSharp
     )
       : base (version, headers)
     {
-      _method = method;
-      _target = target;
+      HttpMethod = method;
+      RequestTarget = target;
     }
 
     #endregion
@@ -82,7 +80,7 @@ namespace WebSocketSharp
     internal string RequestLine {
       get {
         return String.Format (
-                 "{0} {1} HTTP/{2}{3}", _method, _target, ProtocolVersion, CrLf
+                 "{0} {1} HTTP/{2}{3}", HttpMethod, RequestTarget, ProtocolVersion, CrLf
                );
       }
     }
@@ -110,15 +108,11 @@ namespace WebSocketSharp
       }
     }
 
-    public string HttpMethod {
-      get {
-        return _method;
-      }
-    }
+    public string HttpMethod { get; }
 
     public bool IsWebSocketRequest {
       get {
-        return _method == "GET"
+        return HttpMethod == "GET"
                && ProtocolVersion > HttpVersion.Version10
                && Headers.Upgrades ("websocket");
       }
@@ -130,11 +124,7 @@ namespace WebSocketSharp
       }
     }
 
-    public string RequestTarget {
-      get {
-        return _target;
-      }
-    }
+    public string RequestTarget { get; }
 
     #endregion
 
@@ -201,7 +191,7 @@ namespace WebSocketSharp
 
       var method = rlParts[0];
       var target = rlParts[1];
-      var ver = rlParts[2].Substring (5).ToVersion ();
+      var ver = rlParts[2][5..].ToVersion ();
 
       var headers = new WebHeaderCollection ();
 
@@ -215,7 +205,7 @@ namespace WebSocketSharp
       Stream stream, int millisecondsTimeout
     )
     {
-      return Read<HttpRequest> (stream, Parse, millisecondsTimeout);
+      return Read (stream, Parse, millisecondsTimeout);
     }
 
     #endregion

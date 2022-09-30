@@ -63,7 +63,6 @@ namespace WebSocketSharp.Net
 
     private static readonly Dictionary<string, HttpHeaderInfo> _headers;
     private bool                                               _internallyUsed;
-    private HttpHeaderType                                     _state;
 
     #endregion
 
@@ -551,7 +550,7 @@ namespace WebSocketSharp.Net
 
     internal WebHeaderCollection (HttpHeaderType state, bool internallyUsed)
     {
-      _state = state;
+      State = state;
       _internallyUsed = internallyUsed;
     }
 
@@ -588,7 +587,7 @@ namespace WebSocketSharp.Net
 
       try {
         _internallyUsed = serializationInfo.GetBoolean ("InternallyUsed");
-        _state = (HttpHeaderType) serializationInfo.GetInt32 ("State");
+        State = (HttpHeaderType) serializationInfo.GetInt32 ("State");
 
         var cnt = serializationInfo.GetInt32 ("Count");
 
@@ -620,11 +619,7 @@ namespace WebSocketSharp.Net
 
     #region Internal Properties
 
-    internal HttpHeaderType State {
-      get {
-        return _state;
-      }
-    }
+    internal HttpHeaderType State { get; private set; }
 
     #endregion
 
@@ -767,24 +762,24 @@ namespace WebSocketSharp.Net
     {
       base.Add (name, value);
 
-      if (_state != HttpHeaderType.Unspecified)
+      if (State != HttpHeaderType.Unspecified)
         return;
 
       if (headerType == HttpHeaderType.Unspecified)
         return;
 
-      _state = headerType;
+      State = headerType;
     }
 
     private void checkAllowed (HttpHeaderType headerType)
     {
-      if (_state == HttpHeaderType.Unspecified)
+      if (State == HttpHeaderType.Unspecified)
         return;
 
       if (headerType == HttpHeaderType.Unspecified)
         return;
 
-      if (headerType != _state) {
+      if (headerType != State) {
         var msg = "This instance does not allow the header.";
 
         throw new InvalidOperationException (msg);
@@ -920,13 +915,13 @@ namespace WebSocketSharp.Net
     {
       base.Set (name, value);
 
-      if (_state != HttpHeaderType.Unspecified)
+      if (State != HttpHeaderType.Unspecified)
         return;
 
       if (headerType == HttpHeaderType.Unspecified)
         return;
 
-      _state = headerType;
+      State = headerType;
     }
 
     #endregion
@@ -1319,7 +1314,7 @@ namespace WebSocketSharp.Net
     public override void Clear ()
     {
       base.Clear ();
-      _state = HttpHeaderType.Unspecified;
+      State = HttpHeaderType.Unspecified;
     }
 
     /// <summary>
@@ -1468,7 +1463,7 @@ namespace WebSocketSharp.Net
         throw new ArgumentNullException ("serializationInfo");
 
       serializationInfo.AddValue ("InternallyUsed", _internallyUsed);
-      serializationInfo.AddValue ("State", (int) _state);
+      serializationInfo.AddValue ("State", (int) State);
 
       var cnt = Count;
 

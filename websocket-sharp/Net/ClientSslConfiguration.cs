@@ -48,10 +48,7 @@ namespace WebSocketSharp.Net
   {
     #region Private Fields
 
-    private bool                                _checkCertRevocation;
     private LocalCertificateSelectionCallback   _clientCertSelectionCallback;
-    private X509CertificateCollection           _clientCerts;
-    private SslProtocols                        _enabledSslProtocols;
     private RemoteCertificateValidationCallback _serverCertValidationCallback;
     private string                              _targetHost;
 
@@ -82,7 +79,7 @@ namespace WebSocketSharp.Net
 
       _targetHost = targetHost;
 
-      _enabledSslProtocols = SslProtocols.None;
+      EnabledSslProtocols = SslProtocols.None;
     }
 
     /// <summary>
@@ -100,10 +97,10 @@ namespace WebSocketSharp.Net
       if (configuration == null)
         throw new ArgumentNullException ("configuration");
 
-      _checkCertRevocation = configuration._checkCertRevocation;
+      CheckCertificateRevocation = configuration.CheckCertificateRevocation;
       _clientCertSelectionCallback = configuration._clientCertSelectionCallback;
-      _clientCerts = configuration._clientCerts;
-      _enabledSslProtocols = configuration._enabledSslProtocols;
+      ClientCertificates = configuration.ClientCertificates;
+      EnabledSslProtocols = configuration.EnabledSslProtocols;
       _serverCertValidationCallback = configuration._serverCertValidationCallback;
       _targetHost = configuration._targetHost;
     }
@@ -125,15 +122,7 @@ namespace WebSocketSharp.Net
     ///   The default value is <c>false</c>.
     ///   </para>
     /// </value>
-    public bool CheckCertificateRevocation {
-      get {
-        return _checkCertRevocation;
-      }
-
-      set {
-        _checkCertRevocation = value;
-      }
-    }
+    public bool CheckCertificateRevocation { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of client certificates from which to select
@@ -150,15 +139,7 @@ namespace WebSocketSharp.Net
     ///   The default value is <see langword="null"/>.
     ///   </para>
     /// </value>
-    public X509CertificateCollection ClientCertificates {
-      get {
-        return _clientCerts;
-      }
-
-      set {
-        _clientCerts = value;
-      }
-    }
+    public X509CertificateCollection ClientCertificates { get; set; }
 
     /// <summary>
     /// Gets or sets the callback used to select the certificate to supply to
@@ -204,15 +185,7 @@ namespace WebSocketSharp.Net
     ///   The default value is <see cref="SslProtocols.None"/>.
     ///   </para>
     /// </value>
-    public SslProtocols EnabledSslProtocols {
-      get {
-        return _enabledSslProtocols;
-      }
-
-      set {
-        _enabledSslProtocols = value;
-      }
-    }
+    public SslProtocols EnabledSslProtocols { get; set; }
 
     /// <summary>
     /// Gets or sets the callback used to validate the certificate supplied by

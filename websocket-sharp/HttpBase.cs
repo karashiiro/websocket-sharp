@@ -41,11 +41,8 @@ namespace WebSocketSharp
   {
     #region Private Fields
 
-    private NameValueCollection _headers;
     private static readonly int _maxMessageHeaderLength;
     private string              _messageBody;
-    private byte[]              _messageBodyData;
-    private Version             _version;
 
     #endregion
 
@@ -74,19 +71,15 @@ namespace WebSocketSharp
 
     protected HttpBase (Version version, NameValueCollection headers)
     {
-      _version = version;
-      _headers = headers;
+      ProtocolVersion = version;
+      Headers = headers;
     }
 
     #endregion
 
     #region Internal Properties
 
-    internal byte[] MessageBodyData {
-      get {
-        return _messageBodyData;
-      }
-    }
+    internal byte[] MessageBodyData { get; private set; }
 
     #endregion
 
@@ -96,8 +89,8 @@ namespace WebSocketSharp
       get {
         var buff = new StringBuilder (64);
 
-        foreach (var key in _headers.AllKeys)
-          buff.AppendFormat ("{0}: {1}{2}", key, _headers[key], CrLf);
+        foreach (var key in Headers.AllKeys)
+          buff.AppendFormat ("{0}: {1}{2}", key, Headers[key], CrLf);
 
         buff.Append (CrLf);
 
@@ -111,15 +104,11 @@ namespace WebSocketSharp
 
     public bool HasMessageBody {
       get {
-        return _messageBodyData != null;
+        return MessageBodyData != null;
       }
     }
 
-    public NameValueCollection Headers {
-      get {
-        return _headers;
-      }
-    }
+    public NameValueCollection Headers { get; }
 
     public string MessageBody {
       get {
@@ -132,11 +121,7 @@ namespace WebSocketSharp
 
     public abstract string MessageHeader { get; }
 
-    public Version ProtocolVersion {
-      get {
-        return _version;
-      }
-    }
+    public Version ProtocolVersion { get; }
 
     #endregion
 
@@ -144,16 +129,16 @@ namespace WebSocketSharp
 
     private string getMessageBody ()
     {
-      if (_messageBodyData == null || _messageBodyData.LongLength == 0)
+      if (MessageBodyData == null || MessageBodyData.LongLength == 0)
         return String.Empty;
 
-      var contentType = _headers["Content-Type"];
+      var contentType = Headers["Content-Type"];
 
       var enc = contentType != null && contentType.Length > 0
                 ? HttpUtility.GetEncoding (contentType)
                 : Encoding.UTF8;
 
-      return enc.GetString (_messageBodyData);
+      return enc.GetString (MessageBodyData);
     }
 
     private static byte[] readMessageBodyFrom (Stream stream, string length)
@@ -262,7 +247,7 @@ namespace WebSocketSharp
         var contentLen = ret.Headers["Content-Length"];
 
         if (contentLen != null && contentLen.Length > 0)
-          ret._messageBodyData = readMessageBodyFrom (stream, contentLen);
+          ret.MessageBodyData = readMessageBodyFrom (stream, contentLen);
       }
       catch (Exception ex) {
         exception = ex;
@@ -295,14 +280,14 @@ namespace WebSocketSharp
     {
       var headerData = Encoding.UTF8.GetBytes (MessageHeader);
 
-      return _messageBodyData != null
-             ? headerData.Concat (_messageBodyData).ToArray ()
+      return MessageBodyData != null
+             ? headerData.Concat (MessageBodyData).ToArray ()
              : headerData;
     }
 
     public override string ToString ()
     {
-      return _messageBodyData != null
+      return MessageBodyData != null
              ? MessageHeader + MessageBody
              : MessageHeader;
     }

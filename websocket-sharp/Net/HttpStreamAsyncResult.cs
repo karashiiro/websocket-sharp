@@ -46,15 +46,9 @@ namespace WebSocketSharp.Net
   {
     #region Private Fields
 
-    private byte[]           _buffer;
     private AsyncCallback    _callback;
     private bool             _completed;
-    private int              _count;
-    private Exception        _exception;
-    private int              _offset;
-    private object           _state;
     private object           _sync;
-    private int              _syncRead;
     private ManualResetEvent _waitHandle;
 
     #endregion
@@ -64,7 +58,7 @@ namespace WebSocketSharp.Net
     internal HttpStreamAsyncResult (AsyncCallback callback, object state)
     {
       _callback = callback;
-      _state = state;
+      AsyncState = state;
 
       _sync = new object ();
     }
@@ -73,67 +67,27 @@ namespace WebSocketSharp.Net
 
     #region Internal Properties
 
-    internal byte[] Buffer {
-      get {
-        return _buffer;
-      }
+    internal byte[] Buffer { get; set; }
 
-      set {
-        _buffer = value;
-      }
-    }
+    internal int Count { get; set; }
 
-    internal int Count {
-      get {
-        return _count;
-      }
-
-      set {
-        _count = value;
-      }
-    }
-
-    internal Exception Exception {
-      get {
-        return _exception;
-      }
-    }
+    internal Exception Exception { get; private set; }
 
     internal bool HasException {
       get {
-        return _exception != null;
+        return Exception != null;
       }
     }
 
-    internal int Offset {
-      get {
-        return _offset;
-      }
+    internal int Offset { get; set; }
 
-      set {
-        _offset = value;
-      }
-    }
-
-    internal int SyncRead {
-      get {
-        return _syncRead;
-      }
-
-      set {
-        _syncRead = value;
-      }
-    }
+    internal int SyncRead { get; set; }
 
     #endregion
 
     #region Public Properties
 
-    public object AsyncState {
-      get {
-        return _state;
-      }
-    }
+    public object AsyncState { get; }
 
     public WaitHandle AsyncWaitHandle {
       get {
@@ -148,7 +102,7 @@ namespace WebSocketSharp.Net
 
     public bool CompletedSynchronously {
       get {
-        return _syncRead == _count;
+        return SyncRead == Count;
       }
     }
 
@@ -186,7 +140,7 @@ namespace WebSocketSharp.Net
           return;
 
         _completed = true;
-        _exception = exception;
+        Exception = exception;
 
         if (_waitHandle != null)
           _waitHandle.Set ();

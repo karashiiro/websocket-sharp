@@ -37,9 +37,7 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
 using System.Text;
 using System.Threading;
@@ -58,21 +56,16 @@ namespace WebSocketSharp.Server
   {
     #region Private Fields
 
-    private System.Net.IPAddress               _address;
     private bool                               _allowForwardedRequest;
     private AuthenticationSchemes              _authSchemes;
     private static readonly string             _defaultRealm;
     private bool                               _dnsStyle;
     private string                             _hostname;
     private TcpListener                        _listener;
-    private Logger                             _log;
-    private int                                _port;
     private string                             _realm;
     private string                             _realmInUse;
     private Thread                             _receiveThread;
     private bool                               _reuseAddress;
-    private bool                               _secure;
-    private WebSocketServiceManager            _services;
     private ServerSslConfiguration             _sslConfig;
     private ServerSslConfiguration             _sslConfigInUse;
     private volatile ServerState               _state;
@@ -326,11 +319,7 @@ namespace WebSocketSharp.Server
     /// A <see cref="System.Net.IPAddress"/> that represents the local IP
     /// address on which to listen for incoming handshake requests.
     /// </value>
-    public System.Net.IPAddress Address {
-      get {
-        return _address;
-      }
-    }
+    public System.Net.IPAddress Address { get; private set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the server accepts every
@@ -418,11 +407,7 @@ namespace WebSocketSharp.Server
     /// <c>true</c> if the server provides secure connections; otherwise,
     /// <c>false</c>.
     /// </value>
-    public bool IsSecure {
-      get {
-        return _secure;
-      }
-    }
+    public bool IsSecure { get; private set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the server cleans up the
@@ -443,11 +428,11 @@ namespace WebSocketSharp.Server
     /// </value>
     public bool KeepClean {
       get {
-        return _services.KeepClean;
+        return WebSocketServices.KeepClean;
       }
 
       set {
-        _services.KeepClean = value;
+        WebSocketServices.KeepClean = value;
       }
     }
 
@@ -460,11 +445,7 @@ namespace WebSocketSharp.Server
     /// <value>
     /// A <see cref="Logger"/> that provides the logging function.
     /// </value>
-    public Logger Log {
-      get {
-        return _log;
-      }
-    }
+    public Logger Log { get; private set; }
 
     /// <summary>
     /// Gets the port of the server.
@@ -473,11 +454,7 @@ namespace WebSocketSharp.Server
     /// An <see cref="int"/> that represents the number of the port on which
     /// to listen for incoming handshake requests.
     /// </value>
-    public int Port {
-      get {
-        return _port;
-      }
-    }
+    public int Port { get; private set; }
 
     /// <summary>
     /// Gets or sets the name of the realm associated with the server.
@@ -570,7 +547,7 @@ namespace WebSocketSharp.Server
     /// </exception>
     public ServerSslConfiguration SslConfiguration {
       get {
-        if (!_secure) {
+        if (!IsSecure) {
           var msg = "The server does not provide secure connections.";
 
           throw new InvalidOperationException (msg);
@@ -645,11 +622,11 @@ namespace WebSocketSharp.Server
     /// </exception>
     public TimeSpan WaitTime {
       get {
-        return _services.WaitTime;
+        return WebSocketServices.WaitTime;
       }
 
       set {
-        _services.WaitTime = value;
+        WebSocketServices.WaitTime = value;
       }
     }
 
@@ -661,11 +638,7 @@ namespace WebSocketSharp.Server
     /// A <see cref="WebSocketServiceManager"/> that manages the WebSocket
     /// services provided by the server.
     /// </value>
-    public WebSocketServiceManager WebSocketServices {
-      get {
-        return _services;
-      }
-    }
+    public WebSocketServiceManager WebSocketServices { get; private set; }
 
     #endregion
 
@@ -684,16 +657,16 @@ namespace WebSocketSharp.Server
         _listener.Stop ();
       }
       catch (Exception ex) {
-        _log.Fatal (ex.Message);
-        _log.Debug (ex.ToString ());
+        Log.Fatal (ex.Message);
+        Log.Debug (ex.ToString ());
       }
 
       try {
-        _services.Stop (1006, String.Empty);
+        WebSocketServices.Stop (1006, String.Empty);
       }
       catch (Exception ex) {
-        _log.Fatal (ex.Message);
-        _log.Debug (ex.ToString ());
+        Log.Fatal (ex.Message);
+        Log.Debug (ex.ToString ());
       }
 
       _state = ServerState.Stop;
@@ -762,15 +735,15 @@ namespace WebSocketSharp.Server
     )
     {
       _hostname = hostname;
-      _address = address;
-      _port = port;
-      _secure = secure;
+      Address = address;
+      Port = port;
+      IsSecure = secure;
 
       _authSchemes = AuthenticationSchemes.Anonymous;
       _dnsStyle = Uri.CheckHostName (hostname) == UriHostNameType.Dns;
       _listener = new TcpListener (address, port);
-      _log = new Logger ();
-      _services = new WebSocketServiceManager (_log);
+      Log = new Logger ();
+      WebSocketServices = new WebSocketServiceManager (Log);
       _sync = new object ();
     }
 
@@ -791,7 +764,7 @@ namespace WebSocketSharp.Server
       }
 
       if (!_allowForwardedRequest) {
-        if (uri.Port != _port) {
+        if (uri.Port != Port) {
           context.Close (HttpStatusCode.BadRequest);
 
           return;
@@ -811,7 +784,7 @@ namespace WebSocketSharp.Server
 
       WebSocketServiceHost host;
 
-      if (!_services.InternalTryGetServiceHost (path, out host)) {
+      if (!WebSocketServices.InternalTryGetServiceHost (path, out host)) {
         context.Close (HttpStatusCode.NotImplemented);
 
         return;
@@ -832,14 +805,14 @@ namespace WebSocketSharp.Server
             state => {
               try {
                 var ctx = new TcpListenerWebSocketContext (
-                            cl, null, _secure, _sslConfigInUse, _log
+                            cl, null, IsSecure, _sslConfigInUse, Log
                           );
 
                 processRequest (ctx);
               }
               catch (Exception ex) {
-                _log.Error (ex.Message);
-                _log.Debug (ex.ToString ());
+                Log.Error (ex.Message);
+                Log.Debug (ex.ToString ());
 
                 cl.Close ();
               }
@@ -848,31 +821,31 @@ namespace WebSocketSharp.Server
         }
         catch (SocketException ex) {
           if (_state == ServerState.ShuttingDown) {
-            _log.Info ("The underlying listener is stopped.");
+            Log.Info ("The underlying listener is stopped.");
 
             return;
           }
 
-          _log.Fatal (ex.Message);
-          _log.Debug (ex.ToString ());
+          Log.Fatal (ex.Message);
+          Log.Debug (ex.ToString ());
 
           break;
         }
         catch (InvalidOperationException ex) {
           if (_state == ServerState.ShuttingDown) {
-            _log.Info ("The underlying listener is stopped.");
+            Log.Info ("The underlying listener is stopped.");
 
             return;
           }
 
-          _log.Fatal (ex.Message);
-          _log.Debug (ex.ToString ());
+          Log.Fatal (ex.Message);
+          Log.Debug (ex.ToString ());
 
           break;
         }
         catch (Exception ex) {
-          _log.Fatal (ex.Message);
-          _log.Debug (ex.ToString ());
+          Log.Fatal (ex.Message);
+          Log.Debug (ex.ToString ());
 
           if (cl != null)
             cl.Close ();
@@ -893,7 +866,7 @@ namespace WebSocketSharp.Server
         if (_state == ServerState.Start || _state == ServerState.ShuttingDown)
           return;
 
-        if (_secure) {
+        if (IsSecure) {
           var src = getSslConfiguration ();
           var conf = new ServerSslConfiguration (src);
 
@@ -908,13 +881,13 @@ namespace WebSocketSharp.Server
 
         _realmInUse = getRealm ();
 
-        _services.Start ();
+        WebSocketServices.Start ();
 
         try {
           startReceiving ();
         }
         catch {
-          _services.Stop (1011, String.Empty);
+          WebSocketServices.Stop (1011, String.Empty);
 
           throw;
         }
@@ -960,16 +933,16 @@ namespace WebSocketSharp.Server
         stopReceiving (5000);
       }
       catch (Exception ex) {
-        _log.Fatal (ex.Message);
-        _log.Debug (ex.ToString ());
+        Log.Fatal (ex.Message);
+        Log.Debug (ex.ToString ());
       }
 
       try {
-        _services.Stop (code, reason);
+        WebSocketServices.Stop (code, reason);
       }
       catch (Exception ex) {
-        _log.Fatal (ex.Message);
-        _log.Debug (ex.ToString ());
+        Log.Fatal (ex.Message);
+        Log.Debug (ex.ToString ());
       }
 
       _state = ServerState.Stop;
@@ -1055,7 +1028,7 @@ namespace WebSocketSharp.Server
     public void AddWebSocketService<TBehavior> (string path)
       where TBehavior : WebSocketBehavior, new ()
     {
-      _services.AddService<TBehavior> (path, null);
+      WebSocketServices.AddService<TBehavior> (path, null);
     }
 
     /// <summary>
@@ -1124,7 +1097,7 @@ namespace WebSocketSharp.Server
     )
       where TBehavior : WebSocketBehavior, new ()
     {
-      _services.AddService<TBehavior> (path, initializer);
+      WebSocketServices.AddService (path, initializer);
     }
 
     /// <summary>
@@ -1170,7 +1143,7 @@ namespace WebSocketSharp.Server
     /// </exception>
     public bool RemoveWebSocketService (string path)
     {
-      return _services.RemoveService (path);
+      return WebSocketServices.RemoveService (path);
     }
 
     /// <summary>

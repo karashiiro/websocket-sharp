@@ -42,8 +42,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Diagnostics;
 using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -78,9 +76,6 @@ namespace WebSocketSharp
     private Action                         _closeContext;
     private CompressionMethod              _compression;
     private WebSocketContext               _context;
-    private CookieCollection               _cookies;
-    private NetworkCredential              _credentials;
-    private bool                           _emitOnPing;
     private bool                           _enableRedirection;
     private string                         _extensions;
     private bool                           _extensionsRequested;
@@ -92,8 +87,6 @@ namespace WebSocketSharp
     private bool                           _fragmentsCompressed;
     private Opcode                         _fragmentsOpcode;
     private const string                   _guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-    private Func<WebSocketContext, string> _handshakeRequestChecker;
-    private bool                           _ignoreExtensions;
     private bool                           _inContinuation;
     private volatile bool                  _inMessage;
     private volatile Logger                _logger;
@@ -112,7 +105,6 @@ namespace WebSocketSharp
     private volatile WebSocketState        _readyState;
     private ManualResetEvent               _receivingExited;
     private int                            _retryCountForConnect;
-    private bool                           _secure;
     private ClientSslConfiguration         _sslConfig;
     private Stream                         _stream;
     private TcpClient                      _tcpClient;
@@ -173,7 +165,7 @@ namespace WebSocketSharp
       _closeContext = context.Close;
       _logger = context.Log;
       _message = messages;
-      _secure = context.IsSecureConnection;
+      IsSecure = context.IsSecureConnection;
       _stream = context.Stream;
       _waitTime = TimeSpan.FromSeconds (1);
 
@@ -189,7 +181,7 @@ namespace WebSocketSharp
       _closeContext = context.Close;
       _logger = context.Log;
       _message = messages;
-      _secure = context.IsSecureConnection;
+      IsSecure = context.IsSecureConnection;
       _stream = context.Stream;
       _waitTime = TimeSpan.FromSeconds (1);
 
@@ -275,7 +267,7 @@ namespace WebSocketSharp
       _client = true;
       _logger = new Logger ();
       _message = messagec;
-      _secure = _uri.Scheme == "wss";
+      IsSecure = _uri.Scheme == "wss";
       _waitTime = TimeSpan.FromSeconds (5);
 
       init ();
@@ -285,22 +277,10 @@ namespace WebSocketSharp
 
     #region Internal Properties
 
-    internal CookieCollection CookieCollection {
-      get {
-        return _cookies;
-      }
-    }
+    internal CookieCollection CookieCollection { get; private set; }
 
     // As server
-    internal Func<WebSocketContext, string> CustomHandshakeRequestChecker {
-      get {
-        return _handshakeRequestChecker;
-      }
-
-      set {
-        _handshakeRequestChecker = value;
-      }
-    }
+    internal Func<WebSocketContext, string> CustomHandshakeRequestChecker { get; set; }
 
     internal bool HasMessage {
       get {
@@ -310,15 +290,7 @@ namespace WebSocketSharp
     }
 
     // As server
-    internal bool IgnoreExtensions {
-      get {
-        return _ignoreExtensions;
-      }
-
-      set {
-        _ignoreExtensions = value;
-      }
-    }
+    internal bool IgnoreExtensions { get; set; }
 
     internal bool IsConnected {
       get {
@@ -395,8 +367,8 @@ namespace WebSocketSharp
     /// </value>
     public IEnumerable<Cookie> Cookies {
       get {
-        lock (_cookies.SyncRoot) {
-          foreach (Cookie cookie in _cookies)
+        lock (CookieCollection.SyncRoot) {
+          foreach (Cookie cookie in CookieCollection)
             yield return cookie;
         }
       }
@@ -414,11 +386,7 @@ namespace WebSocketSharp
     ///   The default value is <see langword="null"/>.
     ///   </para>
     /// </value>
-    public NetworkCredential Credentials {
-      get {
-        return _credentials;
-      }
-    }
+    public NetworkCredential Credentials { get; private set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether a <see cref="OnMessage"/> event
@@ -433,15 +401,7 @@ namespace WebSocketSharp
     ///   The default value is <c>false</c>.
     ///   </para>
     /// </value>
-    public bool EmitOnPing {
-      get {
-        return _emitOnPing;
-      }
-
-      set {
-        _emitOnPing = value;
-      }
-    }
+    public bool EmitOnPing { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the URL redirection for
@@ -529,11 +489,7 @@ namespace WebSocketSharp
     /// <c>true</c> if this instance uses a secure connection; otherwise,
     /// <c>false</c>.
     /// </value>
-    public bool IsSecure {
-      get {
-        return _secure;
-      }
-    }
+    public bool IsSecure { get; private set; }
 
     /// <summary>
     /// Gets the logging function.
@@ -708,7 +664,7 @@ namespace WebSocketSharp
           throw new InvalidOperationException (msg);
         }
 
-        if (!_secure) {
+        if (!IsSecure) {
           var msg = "This instance does not use a secure connection.";
           throw new InvalidOperationException (msg);
         }
@@ -893,7 +849,7 @@ namespace WebSocketSharp
         processSecWebSocketProtocolClientHeader (vals);
       }
 
-      if (!_ignoreExtensions) {
+      if (!IgnoreExtensions) {
         var val = _context.Headers["Sec-WebSocket-Extensions"];
 
         processSecWebSocketExtensionsClientHeader (val);
@@ -978,7 +934,7 @@ namespace WebSocketSharp
         return false;
       }
 
-      if (!_ignoreExtensions) {
+      if (!IgnoreExtensions) {
         var exts = headers["Sec-WebSocket-Extensions"];
 
         if (exts != null && exts.Length == 0) {
@@ -1335,12 +1291,12 @@ namespace WebSocketSharp
     // As client
     private AuthenticationResponse createAuthenticationResponse ()
     {
-      if (_credentials == null)
+      if (Credentials == null)
         return null;
 
       if (_authChallenge != null) {
         var ret = new AuthenticationResponse (
-                    _authChallenge, _credentials, _nonceCount
+                    _authChallenge, Credentials, _nonceCount
                   );
 
         _nonceCount = ret.NonceCount;
@@ -1348,7 +1304,7 @@ namespace WebSocketSharp
         return ret;
       }
 
-      return _preAuth ? new AuthenticationResponse (_credentials) : null;
+      return _preAuth ? new AuthenticationResponse (Credentials) : null;
     }
 
     // As client
@@ -1416,8 +1372,8 @@ namespace WebSocketSharp
       if (ares != null)
         headers["Authorization"] = ares.ToString ();
 
-      if (_cookies.Count > 0)
-        ret.SetCookies (_cookies);
+      if (CookieCollection.Count > 0)
+        ret.SetCookies (CookieCollection);
 
       return ret;
     }
@@ -1437,8 +1393,8 @@ namespace WebSocketSharp
       if (_extensions != null)
         headers["Sec-WebSocket-Extensions"] = _extensions;
 
-      if (_cookies.Count > 0)
-        ret.SetCookies (_cookies);
+      if (CookieCollection.Count > 0)
+        ret.SetCookies (CookieCollection);
 
       return ret;
     }
@@ -1450,10 +1406,10 @@ namespace WebSocketSharp
     {
       message = null;
 
-      if (_handshakeRequestChecker == null)
+      if (CustomHandshakeRequestChecker == null)
         return true;
 
-      message = _handshakeRequestChecker (context);
+      message = CustomHandshakeRequestChecker (context);
 
       return message == null;
     }
@@ -1539,7 +1495,7 @@ namespace WebSocketSharp
     private void init ()
     {
       _compression = CompressionMethod.None;
-      _cookies = new CookieCollection ();
+      CookieCollection = new CookieCollection ();
       _forPing = new object ();
       _forSend = new object ();
       _forState = new object ();
@@ -1669,7 +1625,7 @@ namespace WebSocketSharp
       if (cookies.Count == 0)
         return;
 
-      _cookies.SetOrRemove (cookies);
+      CookieCollection.SetOrRemove (cookies);
     }
 
     private bool processDataFrame (WebSocketFrame frame)
@@ -1731,7 +1687,7 @@ namespace WebSocketSharp
 
       _logger.Trace ("A pong to this ping has been sent.");
 
-      if (_emitOnPing) {
+      if (EmitOnPing) {
         if (_client)
           pong.Unmask ();
 
@@ -2078,7 +2034,7 @@ namespace WebSocketSharp
       var res = sendHttpRequest (req, 90000);
 
       if (res.IsUnauthorized) {
-        if (_credentials == null) {
+        if (Credentials == null) {
           _logger.Error ("No credential is specified.");
 
           return res;
@@ -2112,7 +2068,7 @@ namespace WebSocketSharp
         }
 
         var ares = new AuthenticationResponse (
-                     _authChallenge, _credentials, _nonceCount
+                     _authChallenge, Credentials, _nonceCount
                    );
 
         _nonceCount = ares.NonceCount;
@@ -2151,7 +2107,7 @@ namespace WebSocketSharp
         releaseClientResources ();
 
         _uri = uri;
-        _secure = uri.Scheme == "wss";
+        IsSecure = uri.Scheme == "wss";
 
         setClientStream ();
 
@@ -2262,7 +2218,7 @@ namespace WebSocketSharp
         _stream = _tcpClient.GetStream ();
       }
 
-      if (_secure) {
+      if (IsSecure) {
         var conf = getSslConfiguration ();
         var host = conf.TargetHost;
 
@@ -3958,8 +3914,8 @@ namespace WebSocketSharp
           return;
         }
 
-        lock (_cookies.SyncRoot)
-          _cookies.SetOrRemove (cookie);
+        lock (CookieCollection.SyncRoot)
+          CookieCollection.SetOrRemove (cookie);
       }
     }
 
@@ -4042,13 +3998,13 @@ namespace WebSocketSharp
         }
 
         if (username.IsNullOrEmpty ()) {
-          _credentials = null;
+          Credentials = null;
           _preAuth = false;
 
           return;
         }
 
-        _credentials = new NetworkCredential (
+        Credentials = new NetworkCredential (
                          username, password, _uri.PathAndQuery
                        );
 

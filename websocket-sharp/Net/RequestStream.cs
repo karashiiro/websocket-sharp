@@ -47,11 +47,8 @@ namespace WebSocketSharp.Net
     #region Private Fields
 
     private long   _bodyLeft;
-    private int    _count;
     private bool   _disposed;
-    private byte[] _initialBuffer;
     private Stream _innerStream;
-    private int    _offset;
 
     #endregion
 
@@ -66,9 +63,9 @@ namespace WebSocketSharp.Net
     )
     {
       _innerStream = innerStream;
-      _initialBuffer = initialBuffer;
-      _offset = offset;
-      _count = count;
+      InitialBuffer = initialBuffer;
+      Offset = offset;
+      Count = count;
       _bodyLeft = contentLength;
     }
 
@@ -76,23 +73,11 @@ namespace WebSocketSharp.Net
 
     #region Internal Properties
 
-    internal int Count {
-      get {
-        return _count;
-      }
-    }
+    internal int Count { get; private set; }
 
-    internal byte[] InitialBuffer {
-      get {
-        return _initialBuffer;
-      }
-    }
+    internal byte[] InitialBuffer { get; }
 
-    internal int Offset {
-      get {
-        return _offset;
-      }
-    }
+    internal int Offset { get; private set; }
 
     #endregion
 
@@ -146,19 +131,19 @@ namespace WebSocketSharp.Net
       if (_bodyLeft == 0)
         return -1;
 
-      if (_count == 0)
+      if (Count == 0)
         return 0;
 
-      if (count > _count)
-        count = _count;
+      if (count > Count)
+        count = Count;
 
       if (_bodyLeft > 0 && _bodyLeft < count)
         count = (int) _bodyLeft;
 
-      Buffer.BlockCopy (_initialBuffer, _offset, buffer, offset, count);
+      Buffer.BlockCopy (InitialBuffer, Offset, buffer, offset, count);
 
-      _offset += count;
-      _count -= count;
+      Offset += count;
+      Count -= count;
 
       if (_bodyLeft > 0)
         _bodyLeft -= count;

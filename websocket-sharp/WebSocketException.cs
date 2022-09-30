@@ -38,8 +38,6 @@ namespace WebSocketSharp
   {
     #region Private Fields
 
-    private CloseStatusCode _code;
-
     #endregion
 
     #region Internal Constructors
@@ -84,7 +82,7 @@ namespace WebSocketSharp
     )
       : base (message ?? code.GetMessage (), innerException)
     {
-      _code = code;
+      Code = code;
     }
 
     #endregion
@@ -98,11 +96,7 @@ namespace WebSocketSharp
     /// One of the <see cref="CloseStatusCode"/> enum values that represents
     /// the status code indicating the cause of the exception.
     /// </value>
-    public CloseStatusCode Code {
-      get {
-        return _code;
-      }
-    }
+    public CloseStatusCode Code { get; }
 
     #endregion
   }

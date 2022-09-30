@@ -63,7 +63,6 @@ namespace WebSocketSharp.Net
   {
     #region Private Fields
 
-    private bool                _closeConnection;
     private Encoding            _contentEncoding;
     private long                _contentLength;
     private string              _contentType;
@@ -71,14 +70,12 @@ namespace WebSocketSharp.Net
     private CookieCollection    _cookies;
     private bool                _disposed;
     private WebHeaderCollection _headers;
-    private bool                _headersSent;
     private bool                _keepAlive;
     private ResponseStream      _outputStream;
     private Uri                 _redirectLocation;
     private bool                _sendChunked;
     private int                 _statusCode;
     private string              _statusDescription;
-    private Version             _version;
 
     #endregion
 
@@ -90,22 +87,14 @@ namespace WebSocketSharp.Net
       _keepAlive = true;
       _statusCode = 200;
       _statusDescription = "OK";
-      _version = HttpVersion.Version11;
+      ProtocolVersion = HttpVersion.Version11;
     }
 
     #endregion
 
     #region Internal Properties
 
-    internal bool CloseConnection {
-      get {
-        return _closeConnection;
-      }
-
-      set {
-        _closeConnection = value;
-      }
-    }
+    internal bool CloseConnection { get; set; }
 
     internal WebHeaderCollection FullHeaders {
       get {
@@ -197,21 +186,13 @@ namespace WebSocketSharp.Net
       }
     }
 
-    internal bool HeadersSent {
-      get {
-        return _headersSent;
-      }
-
-      set {
-        _headersSent = value;
-      }
-    }
+    internal bool HeadersSent { get; set; }
 
     internal string StatusLine {
       get {
         return String.Format (
                  "HTTP/{0} {1} {2}\r\n",
-                 _version,
+                 ProtocolVersion,
                  _statusCode,
                  _statusDescription
                );
@@ -255,7 +236,7 @@ namespace WebSocketSharp.Net
           throw new ObjectDisposedException (name);
         }
 
-        if (_headersSent) {
+        if (HeadersSent) {
           var msg = "The response is already being sent.";
           throw new InvalidOperationException (msg);
         }
@@ -300,7 +281,7 @@ namespace WebSocketSharp.Net
           throw new ObjectDisposedException (name);
         }
 
-        if (_headersSent) {
+        if (HeadersSent) {
           var msg = "The response is already being sent.";
           throw new InvalidOperationException (msg);
         }
@@ -362,7 +343,7 @@ namespace WebSocketSharp.Net
           throw new ObjectDisposedException (name);
         }
 
-        if (_headersSent) {
+        if (HeadersSent) {
           var msg = "The response is already being sent.";
           throw new InvalidOperationException (msg);
         }
@@ -469,7 +450,7 @@ namespace WebSocketSharp.Net
           throw new ObjectDisposedException (name);
         }
 
-        if (_headersSent) {
+        if (HeadersSent) {
           var msg = "The response is already being sent.";
           throw new InvalidOperationException (msg);
         }
@@ -514,11 +495,7 @@ namespace WebSocketSharp.Net
     ///   Always returns same as 1.1.
     ///   </para>
     /// </value>
-    public Version ProtocolVersion {
-      get {
-        return _version;
-      }
-    }
+    public Version ProtocolVersion { get; private set; }
 
     /// <summary>
     /// Gets or sets the URL to which the client is redirected to locate
@@ -569,7 +546,7 @@ namespace WebSocketSharp.Net
           throw new ObjectDisposedException (name);
         }
 
-        if (_headersSent) {
+        if (HeadersSent) {
           var msg = "The response is already being sent.";
           throw new InvalidOperationException (msg);
         }
@@ -624,7 +601,7 @@ namespace WebSocketSharp.Net
           throw new ObjectDisposedException (name);
         }
 
-        if (_headersSent) {
+        if (HeadersSent) {
           var msg = "The response is already being sent.";
           throw new InvalidOperationException (msg);
         }
@@ -671,7 +648,7 @@ namespace WebSocketSharp.Net
           throw new ObjectDisposedException (name);
         }
 
-        if (_headersSent) {
+        if (HeadersSent) {
           var msg = "The response is already being sent.";
           throw new InvalidOperationException (msg);
         }
@@ -728,7 +705,7 @@ namespace WebSocketSharp.Net
           throw new ObjectDisposedException (name);
         }
 
-        if (_headersSent) {
+        if (HeadersSent) {
           var msg = "The response is already being sent.";
           throw new InvalidOperationException (msg);
         }
@@ -1032,7 +1009,7 @@ namespace WebSocketSharp.Net
       _statusCode = templateResponse._statusCode;
       _statusDescription = templateResponse._statusDescription;
       _keepAlive = templateResponse._keepAlive;
-      _version = templateResponse._version;
+      ProtocolVersion = templateResponse.ProtocolVersion;
     }
 
     /// <summary>
@@ -1075,7 +1052,7 @@ namespace WebSocketSharp.Net
         throw new ObjectDisposedException (name);
       }
 
-      if (_headersSent) {
+      if (HeadersSent) {
         var msg = "The response is already being sent.";
         throw new InvalidOperationException (msg);
       }

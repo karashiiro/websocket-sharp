@@ -57,7 +57,6 @@ namespace WebSocketSharp.Net
 
     private List<Cookie> _list;
     private bool         _readOnly;
-    private object       _sync;
 
     #endregion
 
@@ -69,7 +68,7 @@ namespace WebSocketSharp.Net
     public CookieCollection ()
     {
       _list = new List<Cookie> ();
-      _sync = ((ICollection) _list).SyncRoot;
+      SyncRoot = ((ICollection) _list).SyncRoot;
     }
 
     #endregion
@@ -210,11 +209,7 @@ namespace WebSocketSharp.Net
     /// <value>
     /// An <see cref="object"/> used to synchronize access to the collection.
     /// </value>
-    public object SyncRoot {
-      get {
-        return _sync;
-      }
-    }
+    public object SyncRoot { get; }
 
     #endregion
 

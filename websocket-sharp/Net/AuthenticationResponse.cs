@@ -311,11 +311,12 @@ namespace WebSocketSharp.Net
     public IIdentity ToIdentity ()
     {
       var schm = Scheme;
-      return schm == AuthenticationSchemes.Basic
-             ? new HttpBasicIdentity (Parameters["username"], Parameters["password"]) as IIdentity
-             : schm == AuthenticationSchemes.Digest
-               ? new HttpDigestIdentity (Parameters)
-               : null;
+      return schm switch
+      {
+        AuthenticationSchemes.Basic => new HttpBasicIdentity (this.Parameters["username"], this.Parameters["password"]),
+        AuthenticationSchemes.Digest => new HttpDigestIdentity (this.Parameters),
+        _ => null,
+      };
     }
 
     #endregion

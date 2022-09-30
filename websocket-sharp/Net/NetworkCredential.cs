@@ -41,7 +41,6 @@ namespace WebSocketSharp.Net
     private static readonly string[] _noRoles;
     private string                   _password;
     private string[]                 _roles;
-    private string                   _username;
 
     #endregion
 
@@ -116,7 +115,7 @@ namespace WebSocketSharp.Net
       if (username.Length == 0)
         throw new ArgumentException ("An empty string.", "username");
 
-      _username = username;
+      Username = username;
       _password = password;
       _domain = domain;
       _roles = roles;
@@ -194,15 +193,7 @@ namespace WebSocketSharp.Net
     /// <value>
     /// A <see cref="string"/> that represents the username.
     /// </value>
-    public string Username {
-      get {
-        return _username;
-      }
-
-      internal set {
-        _username = value;
-      }
-    }
+    public string Username { get; internal set; }
 
     #endregion
   }

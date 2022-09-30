@@ -55,13 +55,6 @@ namespace WebSocketSharp.Net
   {
     #region Private Fields
 
-    private HttpConnection               _connection;
-    private string                       _errorMessage;
-    private int                          _errorStatusCode;
-    private HttpListener                 _listener;
-    private HttpListenerRequest          _request;
-    private HttpListenerResponse         _response;
-    private IPrincipal                   _user;
     private HttpListenerWebSocketContext _websocketContext;
 
     #endregion
@@ -70,58 +63,30 @@ namespace WebSocketSharp.Net
 
     internal HttpListenerContext (HttpConnection connection)
     {
-      _connection = connection;
+      Connection = connection;
 
-      _errorStatusCode = 400;
-      _request = new HttpListenerRequest (this);
-      _response = new HttpListenerResponse (this);
+      ErrorStatusCode = 400;
+      Request = new HttpListenerRequest (this);
+      Response = new HttpListenerResponse (this);
     }
 
     #endregion
 
     #region Internal Properties
 
-    internal HttpConnection Connection {
-      get {
-        return _connection;
-      }
-    }
+    internal HttpConnection Connection { get; }
 
-    internal string ErrorMessage {
-      get {
-        return _errorMessage;
-      }
+    internal string ErrorMessage { get; set; }
 
-      set {
-        _errorMessage = value;
-      }
-    }
-
-    internal int ErrorStatusCode {
-      get {
-        return _errorStatusCode;
-      }
-
-      set {
-        _errorStatusCode = value;
-      }
-    }
+    internal int ErrorStatusCode { get; set; }
 
     internal bool HasErrorMessage {
       get {
-        return _errorMessage != null;
+        return ErrorMessage != null;
       }
     }
 
-    internal HttpListener Listener {
-      get {
-        return _listener;
-      }
-
-      set {
-        _listener = value;
-      }
-    }
+    internal HttpListener Listener { get; set; }
 
     #endregion
 
@@ -133,11 +98,7 @@ namespace WebSocketSharp.Net
     /// <value>
     /// A <see cref="HttpListenerRequest"/> that represents the client request.
     /// </value>
-    public HttpListenerRequest Request {
-      get {
-        return _request;
-      }
-    }
+    public HttpListenerRequest Request { get; }
 
     /// <summary>
     /// Gets the HTTP response object used to send a response to the client.
@@ -146,11 +107,7 @@ namespace WebSocketSharp.Net
     /// A <see cref="HttpListenerResponse"/> that represents a response to
     /// the client request.
     /// </value>
-    public HttpListenerResponse Response {
-      get {
-        return _response;
-      }
-    }
+    public HttpListenerResponse Response { get; }
 
     /// <summary>
     /// Gets the client information (identity, authentication, and security
@@ -165,11 +122,7 @@ namespace WebSocketSharp.Net
     ///   The instance describes the client.
     ///   </para>
     /// </value>
-    public IPrincipal User {
-      get {
-        return _user;
-      }
-    }
+    public IPrincipal User { get; private set; }
 
     #endregion
 
@@ -208,50 +161,50 @@ namespace WebSocketSharp.Net
       AuthenticationSchemes scheme, string realm
     )
     {
-      _response.StatusCode = 401;
+      Response.StatusCode = 401;
 
       var chal = new AuthenticationChallenge (scheme, realm).ToString ();
-      _response.Headers.InternalSet ("WWW-Authenticate", chal, true);
+      Response.Headers.InternalSet ("WWW-Authenticate", chal, true);
 
-      _response.Close ();
+      Response.Close ();
     }
 
     internal void SendError ()
     {
       try {
-        _response.StatusCode = _errorStatusCode;
-        _response.ContentType = "text/html";
+        Response.StatusCode = ErrorStatusCode;
+        Response.ContentType = "text/html";
 
         var content = createErrorContent (
-                        _errorStatusCode,
-                        _response.StatusDescription,
-                        _errorMessage
+                        ErrorStatusCode,
+                        Response.StatusDescription,
+                        ErrorMessage
                       );
 
         var enc = Encoding.UTF8;
         var entity = enc.GetBytes (content);
 
-        _response.ContentEncoding = enc;
-        _response.ContentLength64 = entity.LongLength;
+        Response.ContentEncoding = enc;
+        Response.ContentLength64 = entity.LongLength;
 
-        _response.Close (entity, true);
+        Response.Close (entity, true);
       }
       catch {
-        _connection.Close (true);
+        Connection.Close (true);
       }
     }
 
     internal void SendError (int statusCode)
     {
-      _errorStatusCode = statusCode;
+      ErrorStatusCode = statusCode;
 
       SendError ();
     }
 
     internal void SendError (int statusCode, string message)
     {
-      _errorStatusCode = statusCode;
-      _errorMessage = message;
+      ErrorStatusCode = statusCode;
+      ErrorMessage = message;
 
       SendError ();
     }
@@ -263,10 +216,10 @@ namespace WebSocketSharp.Net
     )
     {
       var user = HttpUtility.CreateUser (
-                   _request.Headers["Authorization"],
+                   Request.Headers["Authorization"],
                    scheme,
                    realm,
-                   _request.HttpMethod,
+                   Request.HttpMethod,
                    credentialsFinder
                  );
 
@@ -276,17 +229,17 @@ namespace WebSocketSharp.Net
       if (!user.Identity.IsAuthenticated)
         return false;
 
-      _user = user;
+      User = user;
 
       return true;
     }
 
     internal void Unregister ()
     {
-      if (_listener == null)
+      if (Listener == null)
         return;
 
-      _listener.UnregisterContext (this);
+      Listener.UnregisterContext (this);
     }
 
     #endregion

@@ -45,17 +45,6 @@ namespace WebSocketSharp
   {
     #region Private Fields
 
-    private byte[]      _extPayloadLength;
-    private Fin         _fin;
-    private Mask        _mask;
-    private byte[]      _maskingKey;
-    private Opcode      _opcode;
-    private PayloadData _payloadData;
-    private byte        _payloadLength;
-    private Rsv         _rsv1;
-    private Rsv         _rsv2;
-    private Rsv         _rsv3;
-
     #endregion
 
     #region Private Constructors
@@ -88,40 +77,40 @@ namespace WebSocketSharp
       bool mask
     )
     {
-      _fin = fin;
-      _opcode = opcode;
+      Fin = fin;
+      Opcode = opcode;
 
-      _rsv1 = opcode.IsData () && compressed ? Rsv.On : Rsv.Off;
-      _rsv2 = Rsv.Off;
-      _rsv3 = Rsv.Off;
+      Rsv1 = opcode.IsData () && compressed ? Rsv.On : Rsv.Off;
+      Rsv2 = Rsv.Off;
+      Rsv3 = Rsv.Off;
 
       var len = payloadData.Length;
 
       if (len < 126) {
-        _payloadLength = (byte) len;
-        _extPayloadLength = WebSocket.EmptyBytes;
+        PayloadLength = (byte) len;
+        ExtendedPayloadLength = WebSocket.EmptyBytes;
       }
       else if (len < 0x010000) {
-        _payloadLength = (byte) 126;
-        _extPayloadLength = ((ushort) len).ToByteArray (ByteOrder.Big);
+        PayloadLength = 126;
+        ExtendedPayloadLength = ((ushort) len).ToByteArray (ByteOrder.Big);
       }
       else {
-        _payloadLength = (byte) 127;
-        _extPayloadLength = len.ToByteArray (ByteOrder.Big);
+        PayloadLength = 127;
+        ExtendedPayloadLength = len.ToByteArray (ByteOrder.Big);
       }
 
       if (mask) {
-        _mask = Mask.On;
-        _maskingKey = createMaskingKey ();
+        Mask = Mask.On;
+        MaskingKey = createMaskingKey ();
 
-        payloadData.Mask (_maskingKey);
+        payloadData.Mask (MaskingKey);
       }
       else {
-        _mask = Mask.Off;
-        _maskingKey = WebSocket.EmptyBytes;
+        Mask = Mask.Off;
+        MaskingKey = WebSocket.EmptyBytes;
       }
 
-      _payloadData = payloadData;
+      PayloadData = payloadData;
     }
 
     #endregion
@@ -130,19 +119,19 @@ namespace WebSocketSharp
 
     internal ulong ExactPayloadLength {
       get {
-        return _payloadLength < 126
-               ? _payloadLength
-               : _payloadLength == 126
-                 ? _extPayloadLength.ToUInt16 (ByteOrder.Big)
-                 : _extPayloadLength.ToUInt64 (ByteOrder.Big);
+        return PayloadLength < 126
+               ? PayloadLength
+               : PayloadLength == 126
+                 ? ExtendedPayloadLength.ToUInt16 (ByteOrder.Big)
+                 : ExtendedPayloadLength.ToUInt64 (ByteOrder.Big);
       }
     }
 
     internal int ExtendedPayloadLengthWidth {
       get {
-        return _payloadLength < 126
+        return PayloadLength < 126
                ? 0
-               : _payloadLength == 126
+               : PayloadLength == 126
                  ? 2
                  : 8;
       }
@@ -152,145 +141,105 @@ namespace WebSocketSharp
 
     #region Public Properties
 
-    public byte[] ExtendedPayloadLength {
-      get {
-        return _extPayloadLength;
-      }
-    }
+    public byte[] ExtendedPayloadLength { get; private set; }
 
-    public Fin Fin {
-      get {
-        return _fin;
-      }
-    }
+    public Fin Fin { get; private set; }
 
     public bool IsBinary {
       get {
-        return _opcode == Opcode.Binary;
+        return Opcode == Opcode.Binary;
       }
     }
 
     public bool IsClose {
       get {
-        return _opcode == Opcode.Close;
+        return Opcode == Opcode.Close;
       }
     }
 
     public bool IsCompressed {
       get {
-        return _rsv1 == Rsv.On;
+        return Rsv1 == Rsv.On;
       }
     }
 
     public bool IsContinuation {
       get {
-        return _opcode == Opcode.Cont;
+        return Opcode == Opcode.Cont;
       }
     }
 
     public bool IsControl {
       get {
-        return _opcode >= Opcode.Close;
+        return Opcode >= Opcode.Close;
       }
     }
 
     public bool IsData {
       get {
-        return _opcode == Opcode.Text || _opcode == Opcode.Binary;
+        return Opcode == Opcode.Text || Opcode == Opcode.Binary;
       }
     }
 
     public bool IsFinal {
       get {
-        return _fin == Fin.Final;
+        return Fin == Fin.Final;
       }
     }
 
     public bool IsFragment {
       get {
-        return _fin == Fin.More || _opcode == Opcode.Cont;
+        return Fin == Fin.More || Opcode == Opcode.Cont;
       }
     }
 
     public bool IsMasked {
       get {
-        return _mask == Mask.On;
+        return Mask == Mask.On;
       }
     }
 
     public bool IsPing {
       get {
-        return _opcode == Opcode.Ping;
+        return Opcode == Opcode.Ping;
       }
     }
 
     public bool IsPong {
       get {
-        return _opcode == Opcode.Pong;
+        return Opcode == Opcode.Pong;
       }
     }
 
     public bool IsText {
       get {
-        return _opcode == Opcode.Text;
+        return Opcode == Opcode.Text;
       }
     }
 
     public ulong Length {
       get {
         return 2
-               + (ulong) (_extPayloadLength.Length + _maskingKey.Length)
-               + _payloadData.Length;
+               + (ulong) (ExtendedPayloadLength.Length + MaskingKey.Length)
+               + PayloadData.Length;
       }
     }
 
-    public Mask Mask {
-      get {
-        return _mask;
-      }
-    }
+    public Mask Mask { get; private set; }
 
-    public byte[] MaskingKey {
-      get {
-        return _maskingKey;
-      }
-    }
+    public byte[] MaskingKey { get; private set; }
 
-    public Opcode Opcode {
-      get {
-        return _opcode;
-      }
-    }
+    public Opcode Opcode { get; private set; }
 
-    public PayloadData PayloadData {
-      get {
-        return _payloadData;
-      }
-    }
+    public PayloadData PayloadData { get; private set; }
 
-    public byte PayloadLength {
-      get {
-        return _payloadLength;
-      }
-    }
+    public byte PayloadLength { get; private set; }
 
-    public Rsv Rsv1 {
-      get {
-        return _rsv1;
-      }
-    }
+    public Rsv Rsv1 { get; private set; }
 
-    public Rsv Rsv2 {
-      get {
-        return _rsv2;
-      }
-    }
+    public Rsv Rsv2 { get; private set; }
 
-    public Rsv Rsv3 {
-      get {
-        return _rsv3;
-      }
-    }
+    public Rsv Rsv3 { get; private set; }
 
     #endregion
 
@@ -402,7 +351,7 @@ namespace WebSocketSharp
     private static string print (WebSocketFrame frame)
     {
       // Payload Length
-      var payloadLen = frame._payloadLength;
+      var payloadLen = frame.PayloadLength;
 
       // Extended Payload Length
       var extPayloadLen = payloadLen > 125
@@ -410,7 +359,7 @@ namespace WebSocketSharp
                           : String.Empty;
 
       // Masking Key
-      var maskingKey = BitConverter.ToString (frame._maskingKey);
+      var maskingKey = BitConverter.ToString (frame.MaskingKey);
 
       // Payload Data
       var payload = payloadLen == 0
@@ -421,8 +370,8 @@ namespace WebSocketSharp
                         || frame.IsFragment
                         || frame.IsMasked
                         || frame.IsCompressed
-                        ? frame._payloadData.ToString ()
-                        : utf8Decode (frame._payloadData.ApplicationData);
+                        ? frame.PayloadData.ToString ()
+                        : utf8Decode (frame.PayloadData.ApplicationData);
 
       var fmt = @"
                     FIN: {0}
@@ -438,12 +387,12 @@ Extended Payload Length: {7}
 
       return String.Format (
                fmt,
-               frame._fin,
-               frame._rsv1,
-               frame._rsv2,
-               frame._rsv3,
-               frame._opcode,
-               frame._mask,
+               frame.Fin,
+               frame.Rsv1,
+               frame.Rsv2,
+               frame.Rsv3,
+               frame.Opcode,
+               frame.Mask,
                payloadLen,
                extPayloadLen,
                maskingKey,
@@ -507,13 +456,13 @@ Extended Payload Length: {7}
       }
 
       var frame = new WebSocketFrame ();
-      frame._fin = fin;
-      frame._rsv1 = rsv1;
-      frame._rsv2 = rsv2;
-      frame._rsv3 = rsv3;
-      frame._opcode = (Opcode) opcode;
-      frame._mask = mask;
-      frame._payloadLength = payloadLen;
+      frame.Fin = fin;
+      frame.Rsv1 = rsv1;
+      frame.Rsv2 = rsv2;
+      frame.Rsv3 = rsv3;
+      frame.Opcode = (Opcode) opcode;
+      frame.Mask = mask;
+      frame.PayloadLength = payloadLen;
 
       return frame;
     }
@@ -525,7 +474,7 @@ Extended Payload Length: {7}
       var len = frame.ExtendedPayloadLengthWidth;
 
       if (len == 0) {
-        frame._extPayloadLength = WebSocket.EmptyBytes;
+        frame.ExtendedPayloadLength = WebSocket.EmptyBytes;
 
         return frame;
       }
@@ -538,7 +487,7 @@ Extended Payload Length: {7}
         throw new WebSocketException (msg);
       }
 
-      frame._extPayloadLength = bytes;
+      frame.ExtendedPayloadLength = bytes;
 
       return frame;
     }
@@ -553,7 +502,7 @@ Extended Payload Length: {7}
       var len = frame.ExtendedPayloadLengthWidth;
 
       if (len == 0) {
-        frame._extPayloadLength = WebSocket.EmptyBytes;
+        frame.ExtendedPayloadLength = WebSocket.EmptyBytes;
 
         completed (frame);
 
@@ -569,7 +518,7 @@ Extended Payload Length: {7}
             throw new WebSocketException (msg);
           }
 
-          frame._extPayloadLength = bytes;
+          frame.ExtendedPayloadLength = bytes;
 
           completed (frame);
         },
@@ -604,7 +553,7 @@ Extended Payload Length: {7}
     )
     {
       if (!frame.IsMasked) {
-        frame._maskingKey = WebSocket.EmptyBytes;
+        frame.MaskingKey = WebSocket.EmptyBytes;
 
         return frame;
       }
@@ -618,7 +567,7 @@ Extended Payload Length: {7}
         throw new WebSocketException (msg);
       }
 
-      frame._maskingKey = bytes;
+      frame.MaskingKey = bytes;
 
       return frame;
     }
@@ -631,7 +580,7 @@ Extended Payload Length: {7}
     )
     {
       if (!frame.IsMasked) {
-        frame._maskingKey = WebSocket.EmptyBytes;
+        frame.MaskingKey = WebSocket.EmptyBytes;
 
         completed (frame);
 
@@ -649,7 +598,7 @@ Extended Payload Length: {7}
             throw new WebSocketException (msg);
           }
 
-          frame._maskingKey = bytes;
+          frame.MaskingKey = bytes;
 
           completed (frame);
         },
@@ -670,13 +619,13 @@ Extended Payload Length: {7}
       }
 
       if (exactLen == 0) {
-        frame._payloadData = PayloadData.Empty;
+        frame.PayloadData = PayloadData.Empty;
 
         return frame;
       }
 
       var len = (long) exactLen;
-      var bytes = frame._payloadLength < 127
+      var bytes = frame.PayloadLength < 127
                   ? stream.ReadBytes ((int) exactLen)
                   : stream.ReadBytes (len, 1024);
 
@@ -686,7 +635,7 @@ Extended Payload Length: {7}
         throw new WebSocketException (msg);
       }
 
-      frame._payloadData = new PayloadData (bytes, len);
+      frame.PayloadData = new PayloadData (bytes, len);
 
       return frame;
     }
@@ -707,7 +656,7 @@ Extended Payload Length: {7}
       }
 
       if (exactLen == 0) {
-        frame._payloadData = PayloadData.Empty;
+        frame.PayloadData = PayloadData.Empty;
 
         completed (frame);
 
@@ -724,12 +673,12 @@ Extended Payload Length: {7}
             throw new WebSocketException (msg);
           }
 
-          frame._payloadData = new PayloadData (bytes, len);
+          frame.PayloadData = new PayloadData (bytes, len);
 
           completed (frame);
         };
 
-      if (frame._payloadLength < 127) {
+      if (frame.PayloadLength < 127) {
         stream.ReadBytesAsync ((int) exactLen, comp, error);
 
         return;
@@ -837,13 +786,13 @@ Extended Payload Length: {7}
 
     internal void Unmask ()
     {
-      if (_mask == Mask.Off)
+      if (Mask == Mask.Off)
         return;
 
-      _payloadData.Mask (_maskingKey);
+      PayloadData.Mask (MaskingKey);
 
-      _maskingKey = WebSocket.EmptyBytes;
-      _mask = Mask.Off;
+      MaskingKey = WebSocket.EmptyBytes;
+      Mask = Mask.Off;
     }
 
     #endregion
@@ -871,32 +820,32 @@ Extended Payload Length: {7}
     public byte[] ToArray ()
     {
       using (var buff = new MemoryStream ()) {
-        var header = (int) _fin;
-        header = (header << 1) + (int) _rsv1;
-        header = (header << 1) + (int) _rsv2;
-        header = (header << 1) + (int) _rsv3;
-        header = (header << 4) + (int) _opcode;
-        header = (header << 1) + (int) _mask;
-        header = (header << 7) + (int) _payloadLength;
+        var header = (int) Fin;
+        header = (header << 1) + (int) Rsv1;
+        header = (header << 1) + (int) Rsv2;
+        header = (header << 1) + (int) Rsv3;
+        header = (header << 4) + (int) Opcode;
+        header = (header << 1) + (int) Mask;
+        header = (header << 7) + PayloadLength;
 
         var headerAsUshort = (ushort) header;
         var headerAsBytes = headerAsUshort.ToByteArray (ByteOrder.Big);
 
         buff.Write (headerAsBytes, 0, 2);
 
-        if (_payloadLength > 125) {
-          var cnt = _payloadLength == 126 ? 2 : 8;
+        if (PayloadLength > 125) {
+          var cnt = PayloadLength == 126 ? 2 : 8;
 
-          buff.Write (_extPayloadLength, 0, cnt);
+          buff.Write (ExtendedPayloadLength, 0, cnt);
         }
 
-        if (_mask == Mask.On)
-          buff.Write (_maskingKey, 0, 4);
+        if (Mask == Mask.On)
+          buff.Write (MaskingKey, 0, 4);
 
-        if (_payloadLength > 0) {
-          var bytes = _payloadData.ToArray ();
+        if (PayloadLength > 0) {
+          var bytes = PayloadData.ToArray ();
 
-          if (_payloadLength < 127)
+          if (PayloadLength < 127)
             buff.Write (bytes, 0, bytes.Length);
           else
             buff.WriteBytes (bytes, 1024);

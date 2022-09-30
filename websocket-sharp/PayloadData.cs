@@ -37,7 +37,6 @@ namespace WebSocketSharp
     #region Private Fields
 
     private byte[] _data;
-    private long   _extDataLength;
     private long   _length;
 
     #endregion
@@ -108,15 +107,7 @@ namespace WebSocketSharp
       }
     }
 
-    internal long ExtensionDataLength {
-      get {
-        return _extDataLength;
-      }
-
-      set {
-        _extDataLength = value;
-      }
-    }
+    internal long ExtensionDataLength { get; set; }
 
     internal bool HasReservedCode {
       get {
@@ -144,16 +135,16 @@ namespace WebSocketSharp
 
     public byte[] ApplicationData {
       get {
-        return _extDataLength > 0
-               ? _data.SubArray (_extDataLength, _length - _extDataLength)
+        return ExtensionDataLength > 0
+               ? _data.SubArray (ExtensionDataLength, _length - ExtensionDataLength)
                : _data;
       }
     }
 
     public byte[] ExtensionData {
       get {
-        return _extDataLength > 0
-               ? _data.SubArray (0, _extDataLength)
+        return ExtensionDataLength > 0
+               ? _data.SubArray (0, ExtensionDataLength)
                : WebSocket.EmptyBytes;
       }
     }

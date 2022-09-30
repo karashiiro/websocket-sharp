@@ -39,22 +39,17 @@ namespace WebSocketSharp
   {
     #region Private Fields
 
-    private StackFrame _caller;
-    private DateTime   _date;
-    private LogLevel   _level;
-    private string     _message;
-
     #endregion
 
     #region Internal Constructors
 
     internal LogData (LogLevel level, StackFrame caller, string message)
     {
-      _level = level;
-      _caller = caller;
-      _message = message ?? String.Empty;
+      Level = level;
+      Caller = caller;
+      Message = message ?? String.Empty;
 
-      _date = DateTime.Now;
+      Date = DateTime.Now;
     }
 
     #endregion
@@ -68,11 +63,7 @@ namespace WebSocketSharp
     /// A <see cref="StackFrame"/> that provides the information of
     /// the logging method caller.
     /// </value>
-    public StackFrame Caller {
-      get {
-        return _caller;
-      }
-    }
+    public StackFrame Caller { get; }
 
     /// <summary>
     /// Gets the date and time when the log data was created.
@@ -81,11 +72,7 @@ namespace WebSocketSharp
     /// A <see cref="DateTime"/> that represents the date and time when
     /// the log data was created.
     /// </value>
-    public DateTime Date {
-      get {
-        return _date;
-      }
-    }
+    public DateTime Date { get; }
 
     /// <summary>
     /// Gets the logging level of the log data.
@@ -94,11 +81,7 @@ namespace WebSocketSharp
     /// One of the <see cref="LogLevel"/> enum values that represents
     /// the logging level of the log data.
     /// </value>
-    public LogLevel Level {
-      get {
-        return _level;
-      }
-    }
+    public LogLevel Level { get; }
 
     /// <summary>
     /// Gets the message of the log data.
@@ -106,11 +89,7 @@ namespace WebSocketSharp
     /// <value>
     /// A <see cref="string"/> that represents the message of the log data.
     /// </value>
-    public string Message {
-      get {
-        return _message;
-      }
-    }
+    public string Message { get; }
 
     #endregion
 
@@ -124,10 +103,10 @@ namespace WebSocketSharp
     /// </returns>
     public override string ToString ()
     {
-      var date = String.Format ("[{0}]", _date);
-      var level = String.Format ("{0,-5}", _level.ToString ().ToUpper ());
+      var date = String.Format ("[{0}]", Date);
+      var level = String.Format ("{0,-5}", Level.ToString ().ToUpper ());
 
-      var method = _caller.GetMethod ();
+      var method = Caller.GetMethod ();
       var type = method.DeclaringType;
 #if DEBUG
       var num = _caller.GetFileLineNumber ();
@@ -135,10 +114,10 @@ namespace WebSocketSharp
 #else
       var caller = String.Format ("{0}.{1}", type.Name, method.Name);
 #endif
-      var msgs = _message.Replace ("\r\n", "\n").TrimEnd ('\n').Split ('\n');
+      var msgs = Message.Replace ("\r\n", "\n").TrimEnd ('\n').Split ('\n');
 
       if (msgs.Length <= 1)
-        return String.Format ("{0} {1} {2} {3}", date, level, caller, _message);
+        return String.Format ("{0} {1} {2} {3}", date, level, caller, Message);
 
       var buff = new StringBuilder (64);
 

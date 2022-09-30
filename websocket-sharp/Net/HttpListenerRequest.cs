@@ -38,7 +38,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.IO;
@@ -63,21 +62,15 @@ namespace WebSocketSharp.Net
     private bool                     _chunked;
     private HttpConnection           _connection;
     private Encoding                 _contentEncoding;
-    private long                     _contentLength;
     private HttpListenerContext      _context;
     private CookieCollection         _cookies;
     private static readonly Encoding _defaultEncoding;
     private WebHeaderCollection      _headers;
-    private string                   _httpMethod;
     private Stream                   _inputStream;
-    private Version                  _protocolVersion;
     private NameValueCollection      _queryString;
-    private string                   _rawUrl;
-    private Guid                     _requestTraceIdentifier;
     private Uri                      _url;
     private Uri                      _urlReferrer;
     private bool                     _urlSet;
-    private string                   _userHostName;
     private string[]                 _userLanguages;
 
     #endregion
@@ -99,9 +92,9 @@ namespace WebSocketSharp.Net
       _context = context;
 
       _connection = context.Connection;
-      _contentLength = -1;
+      ContentLength64 = -1;
       _headers = new WebHeaderCollection ();
-      _requestTraceIdentifier = Guid.NewGuid ();
+      RequestTraceIdentifier = Guid.NewGuid ();
     }
 
     #endregion
@@ -192,11 +185,7 @@ namespace WebSocketSharp.Net
     ///   -1 if the header is not present.
     ///   </para>
     /// </value>
-    public long ContentLength64 {
-      get {
-        return _contentLength;
-      }
-    }
+    public long ContentLength64 { get; private set; }
 
     /// <summary>
     /// Gets the media type of the entity body data included in the request.
@@ -247,7 +236,7 @@ namespace WebSocketSharp.Net
     /// </value>
     public bool HasEntityBody {
       get {
-        return _contentLength > 0 || _chunked;
+        return ContentLength64 > 0 || _chunked;
       }
     }
 
@@ -270,11 +259,7 @@ namespace WebSocketSharp.Net
     /// A <see cref="string"/> that represents the HTTP method specified in
     /// the request line.
     /// </value>
-    public string HttpMethod {
-      get {
-        return _httpMethod;
-      }
-    }
+    public string HttpMethod { get; private set; }
 
     /// <summary>
     /// Gets a stream that contains the entity body data included in
@@ -291,9 +276,9 @@ namespace WebSocketSharp.Net
     public Stream InputStream {
       get {
         if (_inputStream == null) {
-          _inputStream = _contentLength > 0 || _chunked
+          _inputStream = ContentLength64 > 0 || _chunked
                          ? _connection
-                           .GetRequestStream (_contentLength, _chunked)
+                           .GetRequestStream (ContentLength64, _chunked)
                          : Stream.Null;
         }
 
@@ -350,7 +335,7 @@ namespace WebSocketSharp.Net
     /// </value>
     public bool IsWebSocketRequest {
       get {
-        return _httpMethod == "GET" && _headers.Upgrades ("websocket");
+        return HttpMethod == "GET" && _headers.Upgrades ("websocket");
       }
     }
 
@@ -363,7 +348,7 @@ namespace WebSocketSharp.Net
     /// </value>
     public bool KeepAlive {
       get {
-        return _headers.KeepsAlive (_protocolVersion);
+        return _headers.KeepsAlive (ProtocolVersion);
       }
     }
 
@@ -387,11 +372,7 @@ namespace WebSocketSharp.Net
     /// A <see cref="Version"/> that represents the HTTP version specified in
     /// the request line.
     /// </value>
-    public Version ProtocolVersion {
-      get {
-        return _protocolVersion;
-      }
-    }
+    public Version ProtocolVersion { get; private set; }
 
     /// <summary>
     /// Gets the query string included in the request.
@@ -428,11 +409,7 @@ namespace WebSocketSharp.Net
     /// A <see cref="string"/> that represents the request target specified in
     /// the request line.
     /// </value>
-    public string RawUrl {
-      get {
-        return _rawUrl;
-      }
-    }
+    public string RawUrl { get; private set; }
 
     /// <summary>
     /// Gets the endpoint from which the request is sent.
@@ -453,11 +430,7 @@ namespace WebSocketSharp.Net
     /// <value>
     /// A <see cref="Guid"/> that represents the trace identifier.
     /// </value>
-    public Guid RequestTraceIdentifier {
-      get {
-        return _requestTraceIdentifier;
-      }
-    }
+    public Guid RequestTraceIdentifier { get; }
 
     /// <summary>
     /// Gets the URL requested by the client.
@@ -478,8 +451,8 @@ namespace WebSocketSharp.Net
         if (!_urlSet) {
           _url = HttpUtility
                  .CreateRequestUrl (
-                   _rawUrl,
-                   _userHostName,
+                   RawUrl,
+                   UserHostName,
                    IsWebSocketRequest,
                    IsSecureConnection
                  );
@@ -563,11 +536,7 @@ namespace WebSocketSharp.Net
     ///   It includes the port number if provided.
     ///   </para>
     /// </value>
-    public string UserHostName {
-      get {
-        return _userHostName;
-      }
-    }
+    public string UserHostName { get; private set; }
 
     /// <summary>
     /// Gets the natural languages that are acceptable for the client.
@@ -655,7 +624,7 @@ namespace WebSocketSharp.Net
       var lower = name.ToLower (CultureInfo.InvariantCulture);
 
       if (lower == "host") {
-        if (_userHostName != null) {
+        if (UserHostName != null) {
           _context.ErrorMessage = "Invalid Host header";
 
           return;
@@ -667,13 +636,13 @@ namespace WebSocketSharp.Net
           return;
         }
 
-        _userHostName = val;
+        UserHostName = val;
 
         return;
       }
 
       if (lower == "content-length") {
-        if (_contentLength > -1) {
+        if (ContentLength64 > -1) {
           _context.ErrorMessage = "Invalid Content-Length header";
 
           return;
@@ -693,7 +662,7 @@ namespace WebSocketSharp.Net
           return;
         }
 
-        _contentLength = len;
+        ContentLength64 = len;
 
         return;
       }
@@ -701,7 +670,7 @@ namespace WebSocketSharp.Net
 
     internal void FinishInitialization ()
     {
-      if (_userHostName == null) {
+      if (UserHostName == null) {
         _context.ErrorMessage = "Host header required";
 
         return;
@@ -722,15 +691,15 @@ namespace WebSocketSharp.Net
         _chunked = true;
       }
 
-      if (_httpMethod == "POST" || _httpMethod == "PUT") {
-        if (_contentLength == -1 && !_chunked) {
+      if (HttpMethod == "POST" || HttpMethod == "PUT") {
+        if (ContentLength64 == -1 && !_chunked) {
           _context.ErrorStatusCode = 411;
           _context.ErrorMessage = "Content-Length header required";
 
           return;
         }
 
-        if (_contentLength == 0 && !_chunked) {
+        if (ContentLength64 == 0 && !_chunked) {
           _context.ErrorStatusCode = 411;
           _context.ErrorMessage = "Invalid Content-Length header";
 
@@ -765,8 +734,8 @@ namespace WebSocketSharp.Net
 
       var len = 2048;
 
-      if (_contentLength > 0 && _contentLength < len)
-        len = (int) _contentLength;
+      if (ContentLength64 > 0 && ContentLength64 < len)
+        len = (int) ContentLength64;
 
       var buff = new byte[len];
 
@@ -857,9 +826,9 @@ namespace WebSocketSharp.Net
         return;
       }
 
-      _httpMethod = method;
-      _rawUrl = target;
-      _protocolVersion = ver;
+      HttpMethod = method;
+      RawUrl = target;
+      ProtocolVersion = ver;
     }
 
     #endregion
@@ -941,7 +910,7 @@ namespace WebSocketSharp.Net
       var headers = _headers.ToString ();
 
       buff
-      .AppendFormat (fmt, _httpMethod, _rawUrl, _protocolVersion)
+      .AppendFormat (fmt, HttpMethod, RawUrl, ProtocolVersion)
       .Append (headers);
 
       return buff.ToString ();
