@@ -108,12 +108,7 @@ namespace WebSocketSharp
 
       var method = Caller.GetMethod ();
       var type = method.DeclaringType;
-#if DEBUG
-      var num = _caller.GetFileLineNumber ();
-      var caller = String.Format ("{0}.{1}:{2}", type.Name, method.Name, num);
-#else
       var caller = String.Format ("{0}.{1}", type.Name, method.Name);
-#endif
       var msgs = Message.Replace ("\r\n", "\n").TrimEnd ('\n').Split ('\n');
 
       if (msgs.Length <= 1)
