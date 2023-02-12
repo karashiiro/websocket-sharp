@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>WebSocketSharp</RootNamespace>
     <AssemblyName>websocket-sharp</AssemblyName>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net7.0-windows</TargetFramework>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
